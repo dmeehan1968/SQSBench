@@ -1,0 +1,22 @@
+{
+  "name": "sqsbench",
+  "version": "0.0.1",
+  "description": "Benchmarking for AWS SQS Polling Behaviours",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "aws",
+    "sqs",
+    "benchmark",
+    "queue",
+    "pipe",
+    "event",
+    "source",
+    "mapping"
+  ],
+  "author": "Dave Meehan",
+  "license": "ISC",
+  "workspaces": [ "packages/*" ]
+}
