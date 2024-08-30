@@ -14,7 +14,7 @@ module.exports = {
   extensionsToTreatAsEsm: ['.ts'],
 
   // moduleNameMapper allows for aliasing paths in tsconfig.json, e.g. "@app/*": ["src/*"]
-  moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths),
-  modulePaths: [compilerOptions.baseUrl],
+  // moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths),
+  // modulePaths: [compilerOptions.baseUrl],
   modulePathIgnorePatterns: ['cdk.out', 'dist', 'node_modules'],
 };

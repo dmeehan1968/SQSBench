@@ -1,2 +1,9 @@
-node_modules
-build
+# Node
+node_modules/
+
+# Typescript
+lib/
+*.tsbuildinfo
+
+# AWS CDK asset staging
+cdk.out/

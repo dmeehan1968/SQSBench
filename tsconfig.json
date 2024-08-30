@@ -1,34 +1,12 @@
 {
+  "extends": "./tsconfig.options.json",
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "lib": [ "es2020" ],
-    "declaration": true,
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": false,
-    "inlineSourceMap": true,
-    "inlineSources": true,
-    "experimentalDecorators": true,
-    "strictPropertyInitialization": false,
-    "baseUrl": ".",
-    "resolveJsonModule": true,
-    "typeRoots": [
-      "./node_modules/@types"
-    ],
-    "paths": {
-      "@sqsbench/*": ["packages/*"]
-    },
-    "outDir": "build"
+    "outDir": "./lib"
   },
-  "exclude": [
-    "node_modules",
-    "cdk.out"
-  ]
+  "references": [
+    { "path": "./packages/foo" },
+    { "path": "./packages/bar" }
+  ],
+  "files": [],
+  "include": ["app/**/*.ts"]
 }
