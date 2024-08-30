@@ -24,7 +24,8 @@
     ],
     "paths": {
       "@sqsbench/*": ["packages/*"]
-    }
+    },
+    "outDir": "build"
   },
   "exclude": [
     "node_modules",
