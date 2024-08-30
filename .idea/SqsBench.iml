@@ -5,8 +5,8 @@
       <excludeFolder url="file://$MODULE_DIR$/build" />
       <excludeFolder url="file://$MODULE_DIR$/cdk.out" />
       <excludeFolder url="file://$MODULE_DIR$/lib" />
-      <excludeFolder url="file://$MODULE_DIR$/packages/bar/lib" />
-      <excludeFolder url="file://$MODULE_DIR$/packages/foo/lib" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/consumer/lib" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/producer/lib" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

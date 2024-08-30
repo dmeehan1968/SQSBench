@@ -4,8 +4,8 @@
     "outDir": "./lib"
   },
   "references": [
-    { "path": "./packages/foo" },
-    { "path": "./packages/bar" }
+    { "path": "./packages/producer"},
+    { "path": "./packages/consumer"}
   ],
   "files": [],
   "include": ["app/**/*.ts"]

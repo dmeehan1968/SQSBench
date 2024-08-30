@@ -5,7 +5,5 @@
     "outDir": "./lib"
   },
   "include": ["src/**/*.ts"],
-  "references": [
-    { "path": "../../packages/bar" }
-  ]
+  "references": []
 }
