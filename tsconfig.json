@@ -4,8 +4,15 @@
     "outDir": "./lib"
   },
   "references": [
+    { "path": "./packages/app"},
+    { "path": "./packages/benchmark"},
+    { "path": "./packages/consumer"},
+    { "path": "./packages/dashboard"},
+    { "path": "./packages/helpers"},
+    { "path": "./packages/middleware"},
+    { "path": "./packages/poller"},
     { "path": "./packages/producer"},
-    { "path": "./packages/consumer"}
+    { "path": "./packages/schema"},
   ],
   "include": ["app/**/*.ts"]
 }
