@@ -10,7 +10,13 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@sqsbench/helpers": "0.0.1",
     "@types/crypto-js": "^4.2.2",
-    "crypto-js": "^4.2.0"
+    "crypto-js": "^4.2.0",
+    "deepmerge-ts": "^7.1.0"
+  },
+  "devDependencies": {
+    "aws-cdk-lib": "^2.155.0",
+    "constructs": "^10.3.0"
   }
 }

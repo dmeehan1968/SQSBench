@@ -10,6 +10,12 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@sqsbench/benchmark": "^0.0.1"
+    "@sqsbench/benchmark": "0.0.1",
+    "@sqsbench/dashboard": "0.0.1",
+    "@sqsbench/producer": "0.0.1"
+  },
+  "devDependencies": {
+    "aws-cdk-lib": "^2.155.0",
+    "constructs": "^10.3.0"
   }
 }
