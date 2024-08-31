@@ -28,7 +28,7 @@ export class Queue extends sqs.Queue {
     }
 
     super(scope, id, deepmerge({
-      queueName: Fqn(scope, { suffix: id === 'Default' ? undefined : id }),
+      queueName: Fqn(scope, { suffix: id === 'Default' ? undefined : id, allowedSpecialCharacters: '-_' }),
       retentionPeriod: Duration.days(14),
       receiveMessageWaitTime: Duration.seconds(20),
       ...(dlq && {
