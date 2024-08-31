@@ -17,9 +17,16 @@
     "@aws-cdk/aws-pipes-alpha": "^2.155.0-alpha.0",
     "@aws-cdk/aws-pipes-sources-alpha": "^2.155.0-alpha.0",
     "@aws-cdk/aws-pipes-targets-alpha": "^2.155.0-alpha.0",
+    "@aws-lambda-powertools/metrics": "^2.7.0",
+    "@aws-lambda-powertools/parser": "^2.7.0",
     "@aws-sdk/client-cloudwatch": "^3.637.0",
+    "@middy/core": "^5.4.6",
+    "@middy/error-logger": "^5.4.6",
     "@sqsbench/dashboard": "0.0.1",
     "@sqsbench/helpers": "0.0.1",
-    "@sqsbench/poller": "0.0.1"
+    "@sqsbench/middleware": "^0.0.1",
+    "@sqsbench/poller": "0.0.1",
+    "@sqsbench/schema": "^0.0.1",
+    "p-limit": "^6.1.0"
   }
 }

@@ -70,7 +70,7 @@ export class SqsTest extends Construct {
 
     this.consumer = new NodejsFunction(this, 'Consumer', {
       functionNameOptions: { allowedSpecialCharacters: '-' },
-      entry: path.resolve(__dirname, '../../consumer/src/SqsTest.consumer.ts'),
+      entry: path.resolve(__dirname, './SqsTest.consumer.ts'),
       timeout: Duration.seconds(10),
       deadLetterQueue: this.queue.deadLetterQueue?.queue,
       bundling: { nodeModules: [ 'zod' ]},
@@ -80,17 +80,6 @@ export class SqsTest extends Construct {
     switch (props.pollerType) {
 
       case PollerType.Pipe:
-        // new Pipe(this, 'Pipe', {
-        //   pipeName: Fqn(this, { allowedSpecialCharacters: '-' }),
-        //   source: new SqsPipeSource(this.queue, {
-        //     batch: {
-        //       size: props.batchSize,
-        //       window: props.batchWindow,
-        //     }
-        //   }),
-        //   target: new LambdaPipeTarget(this.consumer),
-        //   enabled: props.enabled ?? false,
-        // })
         new Pipe(this, 'Pipe', {
           pipeName: Fqn(this, { allowedSpecialCharacters: '-' }),
           source: new SqsSource(this.queue, {
@@ -120,7 +109,7 @@ export class SqsTest extends Construct {
           entry: path.resolve(__dirname, '../../poller/src/SqsTest.poller.ts'),
           // allow up to 1 minute of polling + time for the consumer to run its final batch
           timeout: Duration.seconds(70),
-          // bundling: { nodeModules: [ 'zod', '@middy/core' ]},
+          bundling: { nodeModules: [ 'zod' ]},
           memorySize: 128,
         })
 

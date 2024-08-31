@@ -1,4 +1,4 @@
-import { Duration, Stack } from "aws-cdk-lib"
+import { Duration } from "aws-cdk-lib"
 import { Construct } from "constructs"
 import { StringParameter } from "aws-cdk-lib/aws-ssm"
 import { Fqn } from "@sqsbench/helpers"
