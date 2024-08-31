@@ -24,6 +24,7 @@
     "packages/*"
   ],
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
     "@types/jest": "^29.5.12",
     "@types/node": "^22.5.1",
     "depcheck": "^1.4.7",
