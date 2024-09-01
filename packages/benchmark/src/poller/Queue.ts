@@ -5,7 +5,7 @@ import {
   ReceiveMessageCommandInput,
   SQSClient,
 } from "@aws-sdk/client-sqs"
-import { EventEmitter } from "@sqsbench/poller"
+import { EventEmitter } from "./EventEmitter"
 import { chunkArray } from "@sqsbench/helpers"
 
 const sqs = new SQSClient()

@@ -22,11 +22,13 @@
     "@aws-sdk/client-cloudwatch": "^3.637.0",
     "@middy/core": "^5.4.6",
     "@middy/error-logger": "^5.4.6",
+    "@sqsbench/constructs": "0.0.1",
     "@sqsbench/dashboard": "0.0.1",
     "@sqsbench/helpers": "0.0.1",
     "@sqsbench/middleware": "^0.0.1",
     "@sqsbench/poller": "0.0.1",
     "@sqsbench/schema": "^0.0.1",
+    "aws-lambda": "^1.0.7",
     "p-limit": "^6.1.0"
   }
 }

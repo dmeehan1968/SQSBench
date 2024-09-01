@@ -1,6 +1,7 @@
 import { Construct } from 'constructs'
 import { Duration } from "aws-cdk-lib"
-import { Queue, NodejsFunction, Fqn, toExprName } from "@sqsbench/helpers"
+import { Queue, NodejsFunction, Fqn } from "@sqsbench/constructs"
+import { toExprName } from "@sqsbench/helpers"
 import * as path from "node:path"
 import { Rule, RuleTargetInput, Schedule } from "aws-cdk-lib/aws-events"
 import { LambdaFunction } from "aws-cdk-lib/aws-events-targets"
@@ -70,7 +71,7 @@ export class SqsTest extends Construct {
 
     this.consumer = new NodejsFunction(this, 'Consumer', {
       functionNameOptions: { allowedSpecialCharacters: '-' },
-      entry: path.resolve(__dirname, './SqsTest.consumer.ts'),
+      entry: path.resolve(__dirname, './consumer/index.ts'),
       timeout: Duration.seconds(10),
       deadLetterQueue: this.queue.deadLetterQueue?.queue,
       bundling: { nodeModules: [ 'zod' ]},
@@ -106,7 +107,7 @@ export class SqsTest extends Construct {
       case PollerType.Lambda: {
         this.poller = new NodejsFunction(this, 'Poller', {
           functionNameOptions: { allowedSpecialCharacters: '-' },
-          entry: path.resolve(__dirname, '../../poller/src/SqsTest.poller.ts'),
+          entry: path.resolve(__dirname, './poller/index.ts'),
           // allow up to 1 minute of polling + time for the consumer to run its final batch
           timeout: Duration.seconds(70),
           bundling: { nodeModules: [ 'zod' ]},

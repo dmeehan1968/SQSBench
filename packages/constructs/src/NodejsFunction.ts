@@ -2,7 +2,7 @@ import {
   NodejsFunction as NodejsFunctionBase,
   NodejsFunctionProps as NodejsFunctionBaseProps,
 } from "aws-cdk-lib/aws-lambda-nodejs"
-import { Fqn, FqnOptions } from "@sqsbench/helpers"
+import { Fqn, FqnOptions } from "./Fqn"
 import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs"
 import { RemovalPolicy, Stage } from "aws-cdk-lib"
 import { deepmerge } from "deepmerge-ts"

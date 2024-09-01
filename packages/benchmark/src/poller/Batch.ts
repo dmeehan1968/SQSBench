@@ -1,4 +1,4 @@
-import { EventEmitter } from "@sqsbench/poller"
+import { EventEmitter } from "./EventEmitter"
 
 interface BatchEvents<T = any> {
   full: T[]

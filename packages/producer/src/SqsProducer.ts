@@ -1,11 +1,9 @@
 import { Duration } from "aws-cdk-lib"
 import { Construct } from "constructs"
 import { StringParameter } from "aws-cdk-lib/aws-ssm"
-import { Fqn } from "@sqsbench/helpers"
-import { NodejsFunction } from "@sqsbench/helpers"
+import { Fqn, NodejsFunction, Queue } from "@sqsbench/constructs"
 import { Rule, RuleTargetInput, Schedule } from "aws-cdk-lib/aws-events"
 import { LambdaFunction } from "aws-cdk-lib/aws-events-targets"
-import { Queue } from "@sqsbench/helpers"
 import * as path from "node:path"
 import { Policy, PolicyStatement } from "aws-cdk-lib/aws-iam"
 import { SqsProducerSettings } from "@sqsbench/schema"
@@ -29,9 +27,9 @@ export class SqsProducer extends Construct {
     const enabledQueues = props.queues.filter(q => q.enabled)
 
     const producer = new NodejsFunction(this, 'Default', {
-      entry: path.resolve(__dirname, './SqsTest.producer.ts'),
+      entry: path.resolve(__dirname, './handler.ts'),
       timeout: Duration.minutes(1),
-      bundling: { nodeModules: [ 'zod' ]},
+      bundling: { nodeModules: [ 'zod' ] },
     })
 
     // Allow the producer to invoke itself (can't use grantInvoke here due to circular dependency)

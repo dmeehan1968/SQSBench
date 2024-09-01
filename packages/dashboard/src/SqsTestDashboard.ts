@@ -2,7 +2,8 @@ import { Duration } from "aws-cdk-lib"
 import { Construct } from "constructs"
 import { SqsTest } from "@sqsbench/benchmark"
 import { Dashboard, GraphWidget, MathExpression, PeriodOverride } from "aws-cdk-lib/aws-cloudwatch"
-import { Fqn, toExprName } from "@sqsbench/helpers"
+import { Fqn } from "@sqsbench/constructs"
+import { toExprName } from "@sqsbench/helpers"
 import { Statistic } from "@aws-sdk/client-cloudwatch"
 
 export class SqsTestDashboard extends Construct {

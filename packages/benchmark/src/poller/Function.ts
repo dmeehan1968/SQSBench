@@ -1,5 +1,6 @@
 import { InvocationType, InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda"
-import { EventEmitter, Jsonifiable } from "@sqsbench/poller"
+import { EventEmitter } from "./EventEmitter"
+import { Jsonifiable } from "./Jsonifiable"
 
 const lambda = new LambdaClient()
 

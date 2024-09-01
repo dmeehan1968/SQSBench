@@ -6,6 +6,7 @@
   "references": [
     { "path": "./packages/app"},
     { "path": "./packages/benchmark"},
+    { "path": "./packages/constructs"},
     { "path": "./packages/dashboard"},
     { "path": "./packages/helpers"},
     { "path": "./packages/middleware"},

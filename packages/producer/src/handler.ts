@@ -5,12 +5,11 @@ import {
   SQSClient,
 } from "@aws-sdk/client-sqs"
 import { chunkArray } from "@sqsbench/helpers"
+import { SqsProducerSettingsSchema } from "@sqsbench/schema"
 import { z } from "zod"
 import pLimit from "p-limit"
 import { InvocationType, InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda"
 import middy from "@middy/core"
-
-import { SqsProducerSettingsSchema } from "@sqsbench/schema"
 
 const ssm = new SSMClient()
 const sqs = new SQSClient()

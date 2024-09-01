@@ -2,7 +2,11 @@ import { Context, SQSBatchItemFailure, SQSEvent, SQSRecord } from "aws-lambda"
 import { Message } from "@aws-sdk/client-sqs"
 import { z } from "zod"
 import pLimit from "p-limit"
-import { Batch, clamp, Function, Timer, Queue } from "@sqsbench/poller"
+import { Batch } from "./Batch"
+import { clamp } from "./clamp"
+import { Function } from "./Function"
+import { Timer } from "./Timer"
+import { Queue } from "./Queue"
 
 const PollerPropsSchema = z.object({
   queueUrl: z.string(),
