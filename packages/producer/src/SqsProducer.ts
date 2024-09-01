@@ -29,7 +29,7 @@ export class SqsProducer extends Construct {
     const producer = new NodejsFunction(this, 'Default', {
       entry: path.resolve(__dirname, './handler.ts'),
       timeout: Duration.minutes(1),
-      bundling: { nodeModules: [ 'zod' ] },
+      bundling: { nodeModules: [ 'zod', '@middy/core' ] },
     })
 
     // Allow the producer to invoke itself (can't use grantInvoke here due to circular dependency)

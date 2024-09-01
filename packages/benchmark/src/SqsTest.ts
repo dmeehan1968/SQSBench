@@ -74,7 +74,7 @@ export class SqsTest extends Construct {
       entry: path.resolve(__dirname, './consumer/index.ts'),
       timeout: Duration.seconds(10),
       deadLetterQueue: this.queue.deadLetterQueue?.queue,
-      bundling: { nodeModules: [ 'zod' ]},
+      bundling: { nodeModules: [ 'zod', '@middy/core' ]},
       memorySize: 128,
     })
 
