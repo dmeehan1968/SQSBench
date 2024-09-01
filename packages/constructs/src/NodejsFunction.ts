@@ -38,7 +38,11 @@ export class NodejsFunction extends NodejsFunctionBase {
 
   constructor(scope: Construct, id: string, { grant, logging, logRetention, tracing, bundling: { externalModules, ...bundling } = {}, functionNameOptions, ...props }: NodejsFunctionProps) {
 
-    const functionName = Fqn(scope, deepmerge({ suffix: id, maxLength: 64 }, functionNameOptions))
+    const functionName = Fqn(scope, deepmerge({
+      suffix: id,
+      maxLength: 64,
+      allowedSpecialCharacters: '-_',
+    } satisfies FqnOptions, functionNameOptions))
 
     const logGroup = logging?.logGroup ?? new LogGroup(scope, id + 'Log', {
       logGroupName: '/aws/lambda/' + functionName,
