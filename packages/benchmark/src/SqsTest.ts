@@ -52,9 +52,7 @@ export class SqsTest extends Construct {
 
   constructor(scope: Construct, props: SqsTestProps) {
 
-    const id = props.pollerType === PollerType.Lambda
-      ? `SqsTest-B${props.batchSize}-W${props.batchWindow.toSeconds()}` + (props.maxConcurrency !== undefined ? `-C${props.maxConcurrency}` : '')
-      : `SqsTest-${props.pollerType}-B${props.batchSize}-W${props.batchWindow.toSeconds()}` + (props.maxConcurrency !== undefined ? `-C${props.maxConcurrency}` : '')
+    const id = `Test-${props.pollerType}-B${props.batchSize}-W${props.batchWindow.toSeconds()}` + (props.maxConcurrency !== undefined ? `-C${props.maxConcurrency}` : '')
 
     super(scope, id)
 
@@ -63,14 +61,12 @@ export class SqsTest extends Construct {
     // Visibility timeout should be 6 times the batch window (or use the default)
     const visibilityTimeout = props.batchWindow && props.batchWindow.toSeconds() > 0 ? Duration.seconds(props.batchWindow.toSeconds() * 6) : undefined
 
-    this.queue = new Queue(this, 'Queue', {
-      queueName: Fqn(this, { allowedSpecialCharacters: '-' }),
+    this.queue = new Queue(this, 'Default', {
       visibilityTimeout,
       // deadLetterQueue: { maxReceiveCount: 3 },
     })
 
     this.consumer = new NodejsFunction(this, 'Consumer', {
-      functionNameOptions: { allowedSpecialCharacters: '-' },
       entry: path.resolve(__dirname, './consumer/index.ts'),
       timeout: Duration.seconds(10),
       deadLetterQueue: this.queue.deadLetterQueue?.queue,
