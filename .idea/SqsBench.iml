@@ -8,6 +8,14 @@
       <excludeFolder url="file://$MODULE_DIR$/lib" />
       <excludeFolder url="file://$MODULE_DIR$/packages/consumer/lib" />
       <excludeFolder url="file://$MODULE_DIR$/packages/producer/lib" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/app/lib" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/benchmark/lib" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/constructs/lib" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/dashboard/lib" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/helpers/lib" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/middleware/lib" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/poller/lib" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/schema/lib" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
