@@ -8,7 +8,7 @@ import { PollerPropsSchema } from "@sqsbench/schema"
 import { Function } from "./Function"
 import { Queue } from "./Queue"
 import { Timer } from "./Timer"
-import { clamp } from "./clamp"
+import { clamp } from "@sqsbench/helpers"
 import { Batch } from "./Batch"
 import pLimit from "p-limit"
 

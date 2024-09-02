@@ -8,7 +8,13 @@ import { Context } from "aws-lambda"
 import { z } from "zod"
 import { SqsProducerSettingsSchema } from "@sqsbench/schema"
 import pLimit from "p-limit"
-import { chunkArray } from "@sqsbench/helpers"
+import { chunkArray, clamp } from "@sqsbench/helpers"
+
+const SendMessagesSchema = z.object({
+  queueUrl: z.string(),
+  delays: z.number().array(),
+  startTime: z.coerce.date(),
+})
 
 export class SqsProducerController {
   constructor(
@@ -28,12 +34,6 @@ export class SqsProducerController {
   private async _handler(unknown: unknown, context: Context) {
 
     this.logger.info('Event', { event: unknown })
-
-    const SendMessagesSchema = z.object({
-      queueUrl: z.string(),
-      delays: z.number().array(),
-      startTime: z.coerce.date(),
-    })
 
     const messageSettings = SendMessagesSchema.safeParse(unknown)
 
@@ -55,7 +55,11 @@ export class SqsProducerController {
       Name: parameterName,
     }))
 
+    // Start at the top of the next minute
     const startTime = new Date()
+    startTime.setSeconds(0, 0)
+    startTime.setMinutes(startTime.getMinutes() + 1)
+
     const isIdlePhase = startTime.getMinutes() >= (60 * dutyCycle)
 
     let settings: { rate: number } = { rate: 1 }
@@ -75,15 +79,6 @@ export class SqsProducerController {
       }))
     }
 
-    function getRandomDelay() {
-      const baseDelay = Math.floor(Math.random() * 20)
-
-      // Add some randomness for busy/quiet periods
-      const busyPeriod = Math.random() < 0.5 ? 0 : Math.floor(Math.random() * 40)
-
-      return Math.min(baseDelay + busyPeriod, 60)
-    }
-
     if (isIdlePhase) {
       this.logger.info('Idle Phase - No actions')
       return
@@ -92,7 +87,7 @@ export class SqsProducerController {
     this.logger.info(`Duty Phase - Send ${settings.rate} messages`)
 
     // Generate random delays for each message
-    const delays = Array.from({ length: settings.rate }, () => getRandomDelay()).sort((a, b) => a - b)
+    const delays = Array.from({ length: settings.rate }, () => this.getRandomDelay()).sort((a, b) => a - b)
 
     const pending: Promise<any>[] = []
 
@@ -132,10 +127,6 @@ export class SqsProducerController {
     const latencies: number[] = []
     const limit = pLimit(50)
 
-    function clamp(min: number, max: number, value: number) {
-      return Math.min(Math.max(min, value), max)
-    }
-
     const pending = chunkArray(delays, 10).map(chunk => {
       return limit(() => {
         latencies.push(Date.now() - startTime.getTime())
@@ -143,7 +134,7 @@ export class SqsProducerController {
           QueueUrl: queueUrl,
           Entries: chunk.map((delay, index) => ({
             Id: index.toString(),
-            DelaySeconds: clamp(0, 60, delay - Math.floor((Date.now() - startTime.getTime()) / 1000)),
+            DelaySeconds: clamp(delay - Math.floor((Date.now() - startTime.getTime()) / 1000), { max: 60 }),
             MessageBody: JSON.stringify({ index, delay }),
           })),
         }))
@@ -160,4 +151,15 @@ export class SqsProducerController {
     })
 
   }
+
+  getRandomDelay() {
+    const baseDelay = Math.floor(Math.random() * 20)
+
+    // Add some randomness for busy/quiet periods
+    const busyPeriod = Math.random() < 0.5 ? 0 : Math.floor(Math.random() * 40)
+
+    return Math.min(baseDelay + busyPeriod, 60)
+  }
+
 }
+

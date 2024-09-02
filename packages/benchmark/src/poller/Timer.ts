@@ -1,5 +1,5 @@
 import { EventEmitter } from "./EventEmitter"
-import { clamp } from "./clamp"
+import { clamp } from "@sqsbench/helpers"
 
 interface TimerEvents {
   timeout: void
