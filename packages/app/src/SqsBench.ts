@@ -1,6 +1,6 @@
 import { Stack } from "aws-cdk-lib"
 import { Construct } from "constructs"
-import { SqsTestDashboard } from "@sqsbench/dashboard"
+import { SqsBenchDashboard } from "@sqsbench/dashboard"
 import { SqsProducer } from "@sqsbench/producer"
 import { SqsTest, SqsTestProps } from "@sqsbench/benchmark"
 
@@ -13,7 +13,7 @@ export class SqsBench extends Stack {
     super(scope, id)
 
     // add tests
-    const tests = props.tests.map((test, i) => new SqsTest(this, test))
+    const tests = props.tests.map(test => new SqsTest(this, test))
 
     // add producer
     new SqsProducer(this, 'Producer', {
@@ -23,7 +23,7 @@ export class SqsBench extends Stack {
     })
 
     // add dashboard
-    new SqsTestDashboard(this, 'Dashboard', {
+    new SqsBenchDashboard(this, 'Dashboard', {
       tests,
     })
   }

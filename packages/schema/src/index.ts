@@ -3,3 +3,4 @@ export * from './SQSRecordSchema'
 export * from './SqsProducerSettingsSchema'
 export * from './SqsRecordWithPayloadSchema'
 export * from './SqsConsumerPayloadSchema'
+export * from "./PollerPropsSchema"

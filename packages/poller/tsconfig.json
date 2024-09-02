@@ -1,9 +1,0 @@
-{
-  "extends": "../../tsconfig.options.json",
-  "compilerOptions": {
-    "emitDeclarationOnly": true,
-    "outDir": "./lib"
-  },
-  "include": ["src/**/*.ts"],
-  "references": []
-}

@@ -6,7 +6,7 @@ import { Fqn } from "@sqsbench/constructs"
 import { toExprName } from "@sqsbench/helpers"
 import { Statistic } from "@aws-sdk/client-cloudwatch"
 
-export class SqsTestDashboard extends Construct {
+export class SqsBenchDashboard extends Construct {
   constructor(scope: Construct, id: string, { tests }: { tests: SqsTest[] }) {
     super(scope, id)
 

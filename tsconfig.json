@@ -10,7 +10,6 @@
     { "path": "./packages/dashboard"},
     { "path": "./packages/helpers"},
     { "path": "./packages/middleware"},
-    { "path": "./packages/poller"},
     { "path": "./packages/producer"},
     { "path": "./packages/schema"},
   ],

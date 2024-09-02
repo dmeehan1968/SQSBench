@@ -1,3 +1,3 @@
 export * from './LambdaCostMetric'
 export * from './SqsCostMetric'
-export * from './SqsTestDashboard'
+export * from './SqsBenchDashboard'

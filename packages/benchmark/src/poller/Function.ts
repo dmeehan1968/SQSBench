@@ -1,8 +1,7 @@
 import { InvocationType, InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda"
 import { EventEmitter } from "./EventEmitter"
 import { Jsonifiable } from "./Jsonifiable"
-
-const lambda = new LambdaClient()
+import { Logger } from "@aws-lambda-powertools/logger"
 
 interface FunctionEvents {
   response: { res: any, req: Jsonifiable }
@@ -11,13 +10,17 @@ interface FunctionEvents {
 
 export class Function extends EventEmitter<FunctionEvents> {
 
-  constructor(private readonly functionArn: string) {
+  constructor(
+    private readonly lambda: LambdaClient,
+    private readonly functionArn: string,
+    private readonly logger: Logger,
+  ) {
     super()
   }
 
   async invoke(request: Jsonifiable) {
-    console.log(`Invoking ${this.functionArn}`)
-    const res = await lambda.send(new InvokeCommand({
+    this.logger.info(`Invoking ${this.functionArn}`)
+    const res = await this.lambda.send(new InvokeCommand({
       FunctionName: this.functionArn,
       InvocationType: InvocationType.RequestResponse,
       Payload: Buffer.from(JSON.stringify(request)),
@@ -25,7 +28,7 @@ export class Function extends EventEmitter<FunctionEvents> {
 
     if (res.FunctionError) {
       // if there is an error, ignore the messages and they will return to the queue
-      console.error('Error', res.FunctionError)
+      this.logger.error('Error', { response: res })
       return
     }
 

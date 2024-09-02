@@ -7,8 +7,7 @@ import {
 } from "@aws-sdk/client-sqs"
 import { EventEmitter } from "./EventEmitter"
 import { chunkArray } from "@sqsbench/helpers"
-
-const sqs = new SQSClient()
+import { Logger } from "@aws-lambda-powertools/logger"
 
 interface QueueEvents {
   messages: Message[]
@@ -23,7 +22,11 @@ export class Queue extends EventEmitter<QueueEvents> {
   isPolling: boolean = false
   abortController: AbortController | null = null
 
-  constructor(private readonly queueUrl: string) {
+  constructor(
+    private readonly sqs: SQSClient,
+    private readonly queueUrl: string,
+    private readonly logger: Logger,
+  ) {
     super()
   }
 
@@ -35,11 +38,11 @@ export class Queue extends EventEmitter<QueueEvents> {
 
       const { MinNumberOfMessages, ...params } = getParams()
 
-      console.log(`Polling ${this.queueUrl.split('/').pop()}`, params)
+      this.logger.info(`Polling ${this.queueUrl.split('/').pop()}`, { params })
 
       this.abortController = new AbortController()
 
-      const res = await sqs.send(new ReceiveMessageCommand({
+      const res = await this.sqs.send(new ReceiveMessageCommand({
         QueueUrl: this.queueUrl,
         MessageAttributeNames: ['All'],
         MessageSystemAttributeNames: ['All'],
@@ -51,7 +54,7 @@ export class Queue extends EventEmitter<QueueEvents> {
       }
 
       if (!this.isPolling || (res.Messages?.length ?? 0) < (MinNumberOfMessages ?? 1)) {
-        console.log('Stopping polling, insufficient messages')
+        this.logger.info('Stopping polling, insufficient messages')
         break
       }
 
@@ -76,8 +79,8 @@ export class Queue extends EventEmitter<QueueEvents> {
 
   async deleteMessages(messages: Message[]) {
     await Promise.allSettled(chunkArray(messages, 10).map(async chunk => {
-      console.log(`Deleting ${chunk.length} messages from ${this.queueUrl}`)
-      const res = await sqs.send(new DeleteMessageBatchCommand({
+      this.logger.info(`Deleting ${chunk.length} messages from ${this.queueUrl}`)
+      const res = await this.sqs.send(new DeleteMessageBatchCommand({
         QueueUrl: this.queueUrl,
         Entries: chunk.map(message => ({
           Id: message.MessageId,
@@ -85,7 +88,7 @@ export class Queue extends EventEmitter<QueueEvents> {
         })),
       }))
       if (res.Failed) {
-        console.error('Failed to delete messages', JSON.stringify(res.Failed))
+        this.logger.error('Failed to delete messages', { failed: res.Failed })
         await this.emit('error', new Error('Failed to delete messages'))
       }
     }))

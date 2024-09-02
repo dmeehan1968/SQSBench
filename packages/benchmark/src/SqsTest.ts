@@ -5,13 +5,13 @@ import { toExprName } from "@sqsbench/helpers"
 import * as path from "node:path"
 import { Rule, RuleTargetInput, Schedule } from "aws-cdk-lib/aws-events"
 import { LambdaFunction } from "aws-cdk-lib/aws-events-targets"
-import { PollerProps } from "@sqsbench/poller"
 import { Statistic } from "@aws-sdk/client-cloudwatch"
 import { IMetric, MathExpression, Metric } from "aws-cdk-lib/aws-cloudwatch"
 import { LambdaCostMetric, SqsCostMetric } from "@sqsbench/dashboard"
 import { DesiredState, Pipe } from "@aws-cdk/aws-pipes-alpha"
 import { SqsSource } from "@aws-cdk/aws-pipes-sources-alpha"
 import { LambdaFunction as LambdaPipeTarget } from "@aws-cdk/aws-pipes-targets-alpha"
+import { PollerProps } from "@sqsbench/schema"
 
 export enum PollerType {
   Pipe = 'Pipe',
@@ -102,8 +102,7 @@ export class SqsTest extends Construct {
 
       case PollerType.Lambda: {
         this.poller = new NodejsFunction(this, 'Poller', {
-          functionNameOptions: { allowedSpecialCharacters: '-' },
-          entry: path.resolve(__dirname, './poller/index.ts'),
+          entry: path.resolve(__dirname, './poller/handler.ts'),
           // allow up to 1 minute of polling + time for the consumer to run its final batch
           timeout: Duration.seconds(70),
           bundling: { nodeModules: [ 'zod' ]},
