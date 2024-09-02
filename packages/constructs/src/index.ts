@@ -1,3 +1,5 @@
 export * from './Fqn'
 export * from './NodejsFunction'
 export * from './Queue'
+export * from './LambdaCostMetric'
+export * from './SqsCostMetric'

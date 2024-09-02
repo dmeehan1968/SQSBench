@@ -1,8 +1,8 @@
 import { Duration } from "aws-cdk-lib"
 import { MathExpression, Unit } from "aws-cdk-lib/aws-cloudwatch"
-import { NodejsFunction, Fqn } from "@sqsbench/constructs"
-import { toExprName } from "@sqsbench/helpers"
+import { NodejsFunction, Fqn } from "packages/constructs/src/index"
 import { Statistic } from "@aws-sdk/client-cloudwatch"
+import { toExprName } from "../../helpers/src/toExprName"
 
 interface LambdaCostMetricProps {
   label?: string

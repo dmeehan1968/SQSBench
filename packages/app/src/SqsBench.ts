@@ -1,8 +1,8 @@
 import { Stack } from "aws-cdk-lib"
 import { Construct } from "constructs"
-import { SqsBenchDashboard } from "@sqsbench/dashboard"
 import { SqsProducer } from "@sqsbench/producer"
 import { SqsTest, SqsTestProps } from "@sqsbench/benchmark"
+import { SqsBenchDashboard } from "@sqsbench/dashboard"
 
 interface Props {
   tests: SqsTestProps[]

@@ -5,6 +5,7 @@
     "declarationMap": true,
     "emitDeclarationOnly": true,
     "incremental": true,
+    "noEmit": true,
     "noEmitOnError": true,
     "skipLibCheck": true,
 

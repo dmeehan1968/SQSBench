@@ -2,7 +2,6 @@
   "name": "@sqsbench/dashboard",
   "version": "0.0.1",
   "main": "src/index.ts",
-  "types": "src/index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -16,6 +15,7 @@
   "dependencies": {
     "@aws-sdk/client-cloudwatch": "^3.637.0",
     "@sqsbench/benchmark": "0.0.1",
+    "@sqsbench/constructs": "0.0.1",
     "@sqsbench/helpers": "0.0.1"
   }
 }
