@@ -1,7 +1,7 @@
 import { aws_sqs as sqs, Duration } from "aws-cdk-lib"
 import { Construct } from "constructs"
 import { deepmerge } from "deepmerge-ts"
-import { Fqn } from "@sqsbench/constructs"
+import { Fqn } from "./Fqn"
 import { DeadLetterQueue, IQueue } from "aws-cdk-lib/aws-sqs"
 
 export interface QueueProps extends Omit<sqs.QueueProps, 'deadLetterQueue'> {
