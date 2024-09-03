@@ -6,7 +6,10 @@
   "types": "lib/app/index.d.ts",
   "scripts": {
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "deps:list": "syncpack list",
+    "deps:fix": "syncpack fix-mismatches",
+    "deps:update": "ncu -ws --root -u"
   },
   "keywords": [
     "aws",
@@ -26,7 +29,7 @@
   ],
   "devDependencies": {
     "@types/jest": "^29.5.12",
-    "@types/node": "^22.5.1",
+    "@types/node": "^22.5.2",
     "aws-cdk": "^2.155.0",
     "depcheck": "^1.4.7",
     "esbuild": "^0.23.1",
