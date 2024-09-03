@@ -1,25 +1,17 @@
 import { GetParameterCommand, PutParameterCommand, SSMClient } from "@aws-sdk/client-ssm"
-import { SendMessageBatchCommand, SQSClient } from "@aws-sdk/client-sqs"
 import { InvocationType, InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda"
 import { Logger } from "@aws-lambda-powertools/logger"
 import middy from "@middy/core"
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware"
 import { Context } from "aws-lambda"
 import { z } from "zod"
-import { JsonSchema, SqsProducerSettingsSchema } from "@sqsbench/schema"
+import { SqsEmitterSettings, JsonSchema, SqsProducerSettingsSchema } from "@sqsbench/schema"
 import pLimit from "p-limit"
-import { chunkArray, clamp } from "@sqsbench/helpers"
-
-const SendMessagesSchema = z.object({
-  queueUrl: z.string(),
-  delays: z.number().array(),
-  startTime: z.coerce.date(),
-})
+import { chunkArray } from "@sqsbench/helpers"
 
 export class SqsProducerController {
   constructor(
     private readonly ssm: SSMClient,
-    private readonly sqs: SQSClient,
     private readonly lambda: LambdaClient,
     private readonly logger: Logger,
   ) {
@@ -31,21 +23,11 @@ export class SqsProducerController {
       .handler(this._handler.bind(this))
   }
 
-  private async _handler(unknown: unknown, context: Context) {
+  private async _handler(unknown: unknown, _context: Context) {
 
     this.logger.info('Event', { event: unknown })
 
-    const messageSettings = SendMessagesSchema.safeParse(unknown)
-
-    if (messageSettings.success) {
-      const { queueUrl, delays, startTime } = messageSettings.data
-      await this.sendMessages(queueUrl, delays, startTime)
-      return
-    }
-
-    const producerSettings = SqsProducerSettingsSchema.parse(unknown)
-
-    const { dutyCycle, parameterName, queueUrls, minRate, maxRate } = producerSettings
+    const { dutyCycle, parameterName, queueUrls, minRate, maxRate, emitterArn } = SqsProducerSettingsSchema.parse(unknown)
 
     if (!Array.isArray(queueUrls) || queueUrls.length === 0) {
       throw new Error('No queues')
@@ -110,13 +92,13 @@ export class SqsProducerController {
         pending.push(limit(async () => {
           this.logger.info(`Sending ${chunk.length} messages to ${queueUrl}`)
           const res = await this.lambda.send(new InvokeCommand({
-            FunctionName: context.invokedFunctionArn,
+            FunctionName: emitterArn,
             InvocationType: InvocationType.Event,
             Payload: Buffer.from(JSON.stringify({
               queueUrl,
               delays: chunk,
               startTime,
-            } satisfies z.infer<typeof SendMessagesSchema>)),
+            } satisfies SqsEmitterSettings)),
           }))
           if (res.StatusCode === undefined || res.StatusCode < 200 || res.StatusCode >= 300) {
             this.logger.error('Lambda invocation failed', { response: res })
@@ -127,49 +109,6 @@ export class SqsProducerController {
     }
 
     await Promise.allSettled(pending)
-
-  }
-
-  private async sendMessages(queueUrl: string, delays: number[], startTime: Date) {
-
-    const latencies: number[] = []
-    const limit = pLimit(50)
-
-    const pending = chunkArray(delays, 10).map(chunk => {
-      return limit(() => {
-        return this.sqs.send(new SendMessageBatchCommand({
-          QueueUrl: queueUrl,
-          Entries: chunk.map((delay, index) => {
-            const timeToSend = startTime.getTime() + (delay * 1000)
-            const latencyMs = Date.now() - timeToSend
-            latencies.push(latencyMs)
-            const DelaySeconds = clamp(Math.floor((timeToSend - Date.now()) / 1000), { max: 900 })
-            return {
-              Id: index.toString(),
-              DelaySeconds,
-              MessageBody: JSON.stringify({ index, delay }),
-            }
-          }),
-        }))
-      })
-    })
-
-    const res = await Promise.allSettled(pending)
-
-    const stats = latencies.reduce((acc, latency) => {
-      return {
-        ...acc,
-        min: Math.min(acc.min, latency),
-        max: Math.max(acc.max, latency),
-      }
-    }, { min: Infinity, max: -Infinity, avg: 0 })
-    stats.avg = latencies.reduce((acc, latency) => acc + latency, 0) / latencies.length
-    this.logger.info('Latencies (ms)', { latencies: stats })
-
-    // console.log('Batch Send Results', JSON.stringify(res))
-    res.filter(res => res.status === 'rejected').forEach(res => {
-      this.logger.error('Batch Send Error', { error: res.reason })
-    })
 
   }
 

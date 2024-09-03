@@ -24,15 +24,23 @@ export class SqsProducer extends Construct {
       stringValue: JSON.stringify({ rate: 1 }),
     })
 
-    const enabledQueues = props.queues.filter(q => q.enabled)
+    const enabledQueues = props.queues
+      .filter(q => q.enabled)
+      .map(q => q.queue)
 
     const producer = new NodejsFunction(this, 'Default', {
-      entry: import.meta.resolve('./handler.mts').replace(/^file:\/\//, ''),
+      entry: import.meta.resolve('./producer.handler.mts').replace(/^file:\/\//, ''),
       timeout: Duration.minutes(1),
       bundling: { nodeModules: [ 'zod', '@middy/core' ] },
     })
 
-    producer.grantInvokeSelf()
+    const emitter = new NodejsFunction(this, 'Emitter', {
+      entry: import.meta.resolve('./emitter.handler.mts').replace(/^file:\/\//, ''),
+      timeout: Duration.minutes(1),
+      bundling: { nodeModules: [ 'zod', '@middy/core' ] },
+    })
+
+    emitter.grantInvoke(producer)
 
     param.grantRead(producer)
     param.grantWrite(producer)
@@ -45,13 +53,14 @@ export class SqsProducer extends Construct {
           maxRate: props.maxRate,
           dutyCycle: props.dutyCycle ?? 0.75,
           parameterName: param.parameterName,
-          queueUrls: enabledQueues.map(q => q.queue.queueUrl),
+          queueUrls: enabledQueues.map(queue => queue.queueUrl),
+          emitterArn: emitter.functionArn,
         } satisfies SqsProducerSettings),
       })],
       enabled: props.enabled ?? false,
     })
 
-    enabledQueues.forEach(queue => queue.queue.grantSendMessages(producer))
+    enabledQueues.forEach(queue => queue.grantSendMessages(emitter))
 
   }
 }

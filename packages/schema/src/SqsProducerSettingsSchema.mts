@@ -6,5 +6,6 @@ export const SqsProducerSettingsSchema = z.object({
   queueUrls: z.string().array(),
   minRate: z.number(),
   maxRate: z.number(),
+  emitterArn: z.string(),
 })
 export type SqsProducerSettings = z.infer<typeof SqsProducerSettingsSchema>
