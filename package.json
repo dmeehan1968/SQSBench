@@ -5,8 +5,6 @@
   "main": "lib/app/index.ts",
   "types": "lib/app/index.d.ts",
   "scripts": {
-    "build": "tsc --build",
-    "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk"
   },
@@ -29,6 +27,7 @@
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/node": "^22.5.1",
+    "aws-cdk": "^2.155.0",
     "depcheck": "^1.4.7",
     "esbuild": "^0.23.1",
     "jest": "^29.7.0",
