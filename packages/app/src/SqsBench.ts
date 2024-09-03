@@ -1,4 +1,4 @@
-import { Stack } from "aws-cdk-lib"
+import { Stack, Tags } from "aws-cdk-lib"
 import { Construct } from "constructs"
 import { SqsProducer } from "@sqsbench/producer"
 import { SqsTest, SqsTestProps } from "@sqsbench/benchmark"
@@ -26,5 +26,8 @@ export class SqsBench extends Stack {
     new SqsBenchDashboard(this, 'Dashboard', {
       tests,
     })
+
+    Tags.of(this).add('AppManagerCFNStackKey', process.env.npm_package_name ?? 'SqsBench')
+
   }
 }
