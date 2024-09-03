@@ -5,6 +5,9 @@ import { SqsBench } from "./SqsBench"
 const app = new App()
 
 new SqsBench(app, 'SqsBench', {
+  minRate: 1,
+  maxRate: 4096,
+  consumerPerMessageDuration: Duration.millis(50),
   tests: [
     { enabled: false, batchSize: 10, batchWindow: Duration.seconds(0), pollerType: PollerType.Lambda, maxSessionDuration: Duration.seconds(60), maxConcurrency: 2 },
     // { enabled: false, batchSize: 10, batchWindow: Duration.seconds(5), pollerType: PollerType.Lambda, maxSessionDuration: Duration.seconds(60), maxConcurrency: 2 },

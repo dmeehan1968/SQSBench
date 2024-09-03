@@ -8,7 +8,7 @@ import { RemovalPolicy, Stage } from "aws-cdk-lib"
 import { deepmerge } from "deepmerge-ts"
 import { Runtime, Tracing } from "aws-cdk-lib/aws-lambda"
 import { Construct } from "constructs"
-import { Effect, PolicyStatement } from "aws-cdk-lib/aws-iam"
+import { Effect, Policy, PolicyStatement } from "aws-cdk-lib/aws-iam"
 import { XRayTraceConfiguration } from "@sqsbench/helpers"
 
 export enum LogLevel {
@@ -129,5 +129,18 @@ export class NodejsFunction extends NodejsFunctionBase {
 
   get metricsNamespace() {
     return this.functionProps.environment?.POWERTOOLS_METRICS_NAMESPACE ?? 'default_namespace'
+  }
+
+  grantInvokeSelf() {
+    // Needs to be done like this to avoid a circular dependency error
+    const policy = new Policy(this, 'Policy', {
+      statements: [
+        new PolicyStatement({
+          actions: ['lambda:InvokeFunction'],
+          resources: [this.functionArn],
+        })
+      ]
+    })
+    policy.attachToRole(this.role!)
   }
 }

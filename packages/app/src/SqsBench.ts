@@ -1,11 +1,35 @@
-import { Stack, Tags } from "aws-cdk-lib"
+import { Duration, Stack, Tags } from "aws-cdk-lib"
 import { Construct } from "constructs"
 import { SqsProducer } from "@sqsbench/producer"
 import { SqsTest, SqsTestProps } from "@sqsbench/benchmark"
 import { SqsBenchDashboard } from "@sqsbench/dashboard"
 
 interface Props {
+  /**
+   * A definition of the tests to run.
+   */
   tests: SqsTestProps[]
+
+  /**
+   * The minimum rate of messages to send per second.  Must be greater than 0.
+   */
+  minRate: number
+
+  /**
+   * The maximum rate of messages to send per second.  Must be greater than 0.  Ideally should be to the power of 2,
+   * e.g. 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096 etc.
+   *
+   * NB: Any test that uses a maxConcurrency is likely to end up backlogged if the rate exceeds its capacity.
+   */
+  maxRate: number
+
+  /**
+   * Duration of message handling in the consumer, per message. Must be greater than 0.
+   *
+   * NB: Per Message Duration * Test Batch Size cannot exceed 897 seconds
+   */
+
+  consumerPerMessageDuration: Duration
 }
 
 export class SqsBench extends Stack {
@@ -13,13 +37,18 @@ export class SqsBench extends Stack {
     super(scope, id)
 
     // add tests
-    const tests = props.tests.map(test => new SqsTest(this, test))
+    const tests = props.tests.map(test => new SqsTest(this, {
+      ...test,
+      perMessageDuration: props.consumerPerMessageDuration
+    }))
 
     // add producer
     new SqsProducer(this, 'Producer', {
       queues: tests.map(test => ({ queue: test.queue, enabled: test.enabled })),
       enabled: tests.reduce((acc, test) => acc || test.enabled, false),
       dutyCycle: 0.75,
+      minRate: props.minRate,
+      maxRate: props.maxRate,
     })
 
     // add dashboard

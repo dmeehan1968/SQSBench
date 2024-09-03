@@ -40,6 +40,7 @@ export type SqsTestProps = (PipeProps | EventSourceProps | LambdaProps) & {
   batchSize: number
   batchWindow: Duration
   enabled?: boolean
+  perMessageDuration?: Duration
 }
 
 export class SqsTest extends Construct {
@@ -65,12 +66,20 @@ export class SqsTest extends Construct {
       // deadLetterQueue: { maxReceiveCount: 3 },
     })
 
+    const perMessageDuration = props.perMessageDuration ?? Duration.millis(50)
+    const timeout = Duration.seconds(Math.ceil((perMessageDuration.toMilliseconds() * props.batchSize) / 1000) + 3)
+    if (timeout.toSeconds() > 900) {
+      throw new Error('Per Message Duration * Batch Size cannot exceed 897 seconds')
+    }
     this.consumer = new NodejsFunction(this, 'Consumer', {
       entry: path.resolve(__dirname, './consumer/index.ts'),
-      timeout: Duration.seconds(10),
       deadLetterQueue: this.queue.deadLetterQueue?.queue,
       bundling: { nodeModules: [ 'zod', '@middy/core' ]},
       memorySize: 128,
+      environment: {
+        PER_MESSAGE_DURATION: perMessageDuration.toString(),
+      },
+      timeout,
     })
 
     switch (props.pollerType) {
@@ -102,8 +111,8 @@ export class SqsTest extends Construct {
       case PollerType.Lambda: {
         this.poller = new NodejsFunction(this, 'Poller', {
           entry: path.resolve(__dirname, './poller/handler.ts'),
-          // allow up to 1 minute of polling + time for the consumer to run its final batch
-          timeout: Duration.seconds(70),
+          // allow polling time + time for the consumer to run its final batch
+          timeout: props.maxSessionDuration.plus(Duration.seconds(Math.ceil(((50 * props.batchSize) + 3000) / 1000))),
           bundling: { nodeModules: [ 'zod' ]},
           memorySize: 128,
         })

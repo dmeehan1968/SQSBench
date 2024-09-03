@@ -6,7 +6,7 @@ import middy from "@middy/core"
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware"
 import { Context } from "aws-lambda"
 import { z } from "zod"
-import { SqsProducerSettingsSchema } from "@sqsbench/schema"
+import { JsonSchema, SqsProducerSettingsSchema } from "@sqsbench/schema"
 import pLimit from "p-limit"
 import { chunkArray, clamp } from "@sqsbench/helpers"
 
@@ -45,7 +45,7 @@ export class SqsProducerController {
 
     const producerSettings = SqsProducerSettingsSchema.parse(unknown)
 
-    const { dutyCycle, parameterName, queueUrls } = producerSettings
+    const { dutyCycle, parameterName, queueUrls, minRate, maxRate } = producerSettings
 
     if (!Array.isArray(queueUrls) || queueUrls.length === 0) {
       throw new Error('No queues')
@@ -60,24 +60,32 @@ export class SqsProducerController {
     startTime.setSeconds(0, 0)
     startTime.setMinutes(startTime.getMinutes() + 1)
 
-    const isIdlePhase = startTime.getMinutes() >= (60 * dutyCycle)
-
-    let settings: { rate: number } = { rate: 1 }
+    // start at 0 rate, which will be idle until top of the next hour
+    let settings: { rate: number } = { rate: 0 }
 
     if (res.Parameter) {
-      // console.log('Parameter', res.Parameter.Value)
-      settings = JSON.parse(res.Parameter.Value ?? '{ "rate": 1 }')
+      // if this fails we'll just use the default settings
+      try {
+        settings = JsonSchema.pipe(z.object({ rate: z.number() })).parse(res.Parameter.Value)
+      } catch (_err) {}
     }
 
     this.logger.info('Settings', { settings })
 
     if (startTime.getMinutes() === 0) {
+      settings.rate = settings.rate === 0
+        ? minRate
+        : settings.rate < maxRate
+          ? settings.rate * 2
+          : 0
       await this.ssm.send(new PutParameterCommand({
         Name: parameterName,
-        Value: JSON.stringify({ rate: settings.rate < 4096 ? settings.rate * 2 : 1 }),
+        Value: JSON.stringify(settings),
         Overwrite: true,
       }))
     }
+
+    const isIdlePhase = startTime.getMinutes() >= (60 * dutyCycle) || settings.rate === 0
 
     if (isIdlePhase) {
       this.logger.info('Idle Phase - No actions')

@@ -5,13 +5,14 @@ import { Fqn, NodejsFunction, Queue } from "@sqsbench/constructs"
 import { Rule, RuleTargetInput, Schedule } from "aws-cdk-lib/aws-events"
 import { LambdaFunction } from "aws-cdk-lib/aws-events-targets"
 import * as path from "node:path"
-import { Policy, PolicyStatement } from "aws-cdk-lib/aws-iam"
 import { SqsProducerSettings } from "@sqsbench/schema"
 
 interface Props {
   queues: { queue: Queue, enabled: boolean }[],
   enabled?: boolean
   dutyCycle?: number
+  minRate: number
+  maxRate: number
 }
 
 export class SqsProducer extends Construct {
@@ -32,16 +33,7 @@ export class SqsProducer extends Construct {
       bundling: { nodeModules: [ 'zod', '@middy/core' ] },
     })
 
-    // Allow the producer to invoke itself (can't use grantInvoke here due to circular dependency)
-    const policy = new Policy(this, 'Policy', {
-      statements: [
-        new PolicyStatement({
-          actions: ['lambda:InvokeFunction'],
-          resources: [producer.functionArn],
-        })
-      ]
-    })
-    policy.attachToRole(producer.role!)
+    producer.grantInvokeSelf()
 
     param.grantRead(producer)
     param.grantWrite(producer)
@@ -50,6 +42,8 @@ export class SqsProducer extends Construct {
       schedule: Schedule.cron({ minute: '0/1' }),
       targets: [new LambdaFunction(producer, {
         event: RuleTargetInput.fromObject({
+          minRate: props.minRate,
+          maxRate: props.maxRate,
           dutyCycle: props.dutyCycle ?? 0.75,
           parameterName: param.parameterName,
           queueUrls: enabledQueues.map(q => q.queue.queueUrl),
