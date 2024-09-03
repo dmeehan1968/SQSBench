@@ -137,21 +137,34 @@ export class SqsProducerController {
 
     const pending = chunkArray(delays, 10).map(chunk => {
       return limit(() => {
-        latencies.push(Date.now() - startTime.getTime())
         return this.sqs.send(new SendMessageBatchCommand({
           QueueUrl: queueUrl,
-          Entries: chunk.map((delay, index) => ({
-            Id: index.toString(),
-            DelaySeconds: clamp(delay - Math.floor((Date.now() - startTime.getTime()) / 1000), { max: 60 }),
-            MessageBody: JSON.stringify({ index, delay }),
-          })),
+          Entries: chunk.map((delay, index) => {
+            const timeToSend = startTime.getTime() + (delay * 1000)
+            const latencyMs = Date.now() - timeToSend
+            latencies.push(latencyMs)
+            const DelaySeconds = clamp(Math.floor((timeToSend - Date.now()) / 1000), { max: 900 })
+            return {
+              Id: index.toString(),
+              DelaySeconds,
+              MessageBody: JSON.stringify({ index, delay }),
+            }
+          }),
         }))
       })
     })
 
     const res = await Promise.allSettled(pending)
 
-    this.logger.info('Latencies (ms per batch of 10)', { latencies })
+    const stats = latencies.reduce((acc, latency) => {
+      return {
+        ...acc,
+        min: Math.min(acc.min, latency),
+        max: Math.max(acc.max, latency),
+      }
+    }, { min: Infinity, max: -Infinity, avg: 0 })
+    stats.avg = latencies.reduce((acc, latency) => acc + latency, 0) / latencies.length
+    this.logger.info('Latencies (ms)', { latencies: stats })
 
     // console.log('Batch Send Results', JSON.stringify(res))
     res.filter(res => res.status === 'rejected').forEach(res => {

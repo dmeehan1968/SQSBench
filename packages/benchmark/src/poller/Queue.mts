@@ -5,7 +5,7 @@ import {
   ReceiveMessageCommandInput,
   SQSClient,
 } from "@aws-sdk/client-sqs"
-import { EventEmitter } from "./EventEmitter"
+import { EventEmitter } from "./EventEmitter.mjs"
 import { chunkArray } from "@sqsbench/helpers"
 import { Logger } from "@aws-lambda-powertools/logger"
 
@@ -25,9 +25,9 @@ export class Queue extends EventEmitter<QueueEvents> {
   constructor(
     private readonly sqs: SQSClient,
     private readonly queueUrl: string,
-    private readonly logger: Logger,
+    logger: Logger,
   ) {
-    super()
+    super(logger)
   }
 
   async poll(getParams: () => PollParams) {

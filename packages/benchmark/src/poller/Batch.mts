@@ -1,4 +1,5 @@
-import { EventEmitter } from "./EventEmitter"
+import { EventEmitter } from "./EventEmitter.mjs"
+import { Logger } from "@aws-lambda-powertools/logger"
 
 interface BatchEvents<T = any> {
   full: T[]
@@ -8,8 +9,8 @@ interface BatchEvents<T = any> {
 export class Batch<T> extends EventEmitter<BatchEvents<T>> {
   private readonly batch: T[] = []
 
-  constructor(private readonly limit: number) {
-    super()
+  constructor(private readonly limit: number, logger: Logger) {
+    super(logger)
   }
 
   async push(items: T[]) {

@@ -13,5 +13,5 @@
     { "path": "./packages/producer"},
     { "path": "./packages/schema"},
   ],
-  "include": ["app/**/*.ts"]
+  "include": ["app/**/*.[m]ts"]
 }

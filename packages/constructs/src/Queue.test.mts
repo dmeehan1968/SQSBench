@@ -1,4 +1,4 @@
-import { Queue } from './Queue'
+import { Queue } from './Queue.mjs'
 import { App, Stack } from 'aws-cdk-lib'
 import { Match, Template } from 'aws-cdk-lib/assertions'
 

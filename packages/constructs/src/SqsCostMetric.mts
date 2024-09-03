@@ -1,6 +1,6 @@
 import { Duration } from "aws-cdk-lib"
 import { MathExpression, Unit } from "aws-cdk-lib/aws-cloudwatch"
-import { Queue, Fqn } from "packages/constructs/src/index"
+import { Queue, Fqn } from "@sqsbench/constructs"
 import { Statistic } from "@aws-sdk/client-cloudwatch"
 import { toExprName } from "@sqsbench/helpers"
 

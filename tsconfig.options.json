@@ -12,9 +12,10 @@
     "esModuleInterop": true,
     "isolatedModules": true,
     "target": "esnext",
-    "module": "commonjs",
+    "module": "nodeNext",
     "lib": [ "esnext" ],
     "strict": true,
+    "forceConsistentCasingInFileNames": true,
 
     "noImplicitAny": true,
     "strictNullChecks": true,
@@ -30,7 +31,7 @@
     "strictPropertyInitialization": false,
     "baseUrl": ".",
     "resolveJsonModule": true,
-    "moduleResolution": "node",
+    "moduleResolution": "nodeNext",
 
     "typeRoots": [
       "./node_modules/@types"

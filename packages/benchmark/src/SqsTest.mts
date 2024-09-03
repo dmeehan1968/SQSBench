@@ -2,7 +2,6 @@ import { Construct } from 'constructs'
 import { Duration } from "aws-cdk-lib"
 import { Queue, NodejsFunction, Fqn, LambdaCostMetric, SqsCostMetric } from "@sqsbench/constructs"
 import { toExprName } from "@sqsbench/helpers"
-import * as path from "node:path"
 import { Rule, RuleTargetInput, Schedule } from "aws-cdk-lib/aws-events"
 import { LambdaFunction } from "aws-cdk-lib/aws-events-targets"
 import { Statistic } from "@aws-sdk/client-cloudwatch"
@@ -71,13 +70,14 @@ export class SqsTest extends Construct {
     if (timeout.toSeconds() > 900) {
       throw new Error('Per Message Duration * Batch Size cannot exceed 897 seconds')
     }
+
     this.consumer = new NodejsFunction(this, 'Consumer', {
-      entry: path.resolve(__dirname, './consumer/index.ts'),
+      entry: import.meta.resolve('./consumer/index.mts').replace(/^file:\/\//, ''),
       deadLetterQueue: this.queue.deadLetterQueue?.queue,
       bundling: { nodeModules: [ 'zod', '@middy/core' ]},
       memorySize: 128,
       environment: {
-        PER_MESSAGE_DURATION: perMessageDuration.toString(),
+        PER_MESSAGE_DURATION: perMessageDuration.toMilliseconds().toString(),
       },
       timeout,
     })
@@ -110,7 +110,7 @@ export class SqsTest extends Construct {
 
       case PollerType.Lambda: {
         this.poller = new NodejsFunction(this, 'Poller', {
-          entry: path.resolve(__dirname, './poller/handler.ts'),
+          entry: import.meta.resolve('./poller/handler.mts').replace(/^file:\/\//, ''),
           // allow polling time + time for the consumer to run its final batch
           timeout: props.maxSessionDuration.plus(Duration.seconds(Math.ceil(((50 * props.batchSize) + 3000) / 1000))),
           bundling: { nodeModules: [ 'zod' ]},

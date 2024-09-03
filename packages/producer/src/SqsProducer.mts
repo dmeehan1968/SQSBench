@@ -4,7 +4,6 @@ import { StringParameter } from "aws-cdk-lib/aws-ssm"
 import { Fqn, NodejsFunction, Queue } from "@sqsbench/constructs"
 import { Rule, RuleTargetInput, Schedule } from "aws-cdk-lib/aws-events"
 import { LambdaFunction } from "aws-cdk-lib/aws-events-targets"
-import * as path from "node:path"
 import { SqsProducerSettings } from "@sqsbench/schema"
 
 interface Props {
@@ -28,7 +27,7 @@ export class SqsProducer extends Construct {
     const enabledQueues = props.queues.filter(q => q.enabled)
 
     const producer = new NodejsFunction(this, 'Default', {
-      entry: path.resolve(__dirname, './handler.ts'),
+      entry: import.meta.resolve('./handler.mts').replace(/^file:\/\//, ''),
       timeout: Duration.minutes(1),
       bundling: { nodeModules: [ 'zod', '@middy/core' ] },
     })

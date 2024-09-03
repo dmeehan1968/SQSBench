@@ -1,4 +1,5 @@
 import pLimit from "p-limit"
+import { Logger } from "@aws-lambda-powertools/logger"
 
 type Subscriber<T> = (payload: T) => void | Promise<void>
 
@@ -10,6 +11,8 @@ interface IEventEmitter<Events extends Record<string, any>> {
 
 export class EventEmitter<Events extends Record<string, any>> implements IEventEmitter<Events> {
   private readonly subscribers = new Map<string, Set<Subscriber<any>>>()
+
+  constructor(protected readonly logger: Logger) {}
 
   on<K extends keyof Events>(event: K | K[], subscriber: Subscriber<Events[K]>) {
 
@@ -40,7 +43,7 @@ export class EventEmitter<Events extends Record<string, any>> implements IEventE
     }
     const limit = pLimit(options?.concurrency ?? 1)
     const all = [...subscribers].map(async (subscriber) => limit(() => subscriber(payload)))
-    console.log(`Emitting '${String(event)}' to ${all.length} subscribers`, JSON.stringify(payload, null, 2))
+    this.logger.info(`Emitting '${String(event)}' to ${all.length} subscribers`, { payload })
     const results = await Promise.allSettled(all)
     results.filter(result => result.status === 'rejected').forEach(result => this.emit('error', result.reason))
     return

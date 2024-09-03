@@ -5,11 +5,11 @@ import middy from "@middy/core"
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware"
 import { Context, SQSBatchItemFailure, SQSEvent, SQSRecord } from "aws-lambda"
 import { PollerPropsSchema } from "@sqsbench/schema"
-import { Function } from "./Function"
-import { Queue } from "./Queue"
-import { Timer } from "./Timer"
+import { Function } from "./Function.mjs"
+import { Queue } from "./Queue.mjs"
+import { Timer } from "./Timer.mjs"
 import { clamp } from "@sqsbench/helpers"
-import { Batch } from "./Batch"
+import { Batch } from "./Batch.mjs"
 import pLimit from "p-limit"
 
 export class SqsPollerController {
@@ -34,7 +34,7 @@ export class SqsPollerController {
     const queue = new Queue(this.sqs, props.queueUrl, this.logger)
     using sessionTimer = new Timer(clamp(props.maxSessionDuration * 1000, { max: Math.max(0, context.getRemainingTimeInMillis() - 10_000) }))
     using batchTimer = new Timer(props.batchWindow * 1000)
-    const batch = new Batch<Message>(props.batchSize)
+    const batch = new Batch<Message>(props.batchSize, this.logger)
     const concurrencyController = pLimit(props.maxConcurrency)
 
     const invokeConsumer = async () => {

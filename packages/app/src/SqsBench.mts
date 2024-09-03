@@ -30,6 +30,12 @@ interface Props {
    */
 
   consumerPerMessageDuration: Duration
+
+  /**
+   * The duty cycle of the producer.  Must be between 0 and 1.
+   */
+
+  dutyCycle: number
 }
 
 export class SqsBench extends Stack {
@@ -46,7 +52,7 @@ export class SqsBench extends Stack {
     new SqsProducer(this, 'Producer', {
       queues: tests.map(test => ({ queue: test.queue, enabled: test.enabled })),
       enabled: tests.reduce((acc, test) => acc || test.enabled, false),
-      dutyCycle: 0.75,
+      dutyCycle: props.dutyCycle,
       minRate: props.minRate,
       maxRate: props.maxRate,
     })

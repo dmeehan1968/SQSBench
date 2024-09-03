@@ -1,5 +1,5 @@
 {
-  "app": "npx ts-node -r tsconfig-paths/register --prefer-ts-exts packages/app/src/index.ts",
+  "app": "tsx packages/app/src/index.mts",
   "watch": {
     "include": [
       "**"

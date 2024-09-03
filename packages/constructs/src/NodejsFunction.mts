@@ -1,8 +1,9 @@
 import {
   NodejsFunction as NodejsFunctionBase,
   NodejsFunctionProps as NodejsFunctionBaseProps,
+  OutputFormat,
 } from "aws-cdk-lib/aws-lambda-nodejs"
-import { Fqn, FqnOptions } from "./Fqn"
+import { Fqn, FqnOptions } from "./Fqn.mjs"
 import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs"
 import { RemovalPolicy, Stage } from "aws-cdk-lib"
 import { deepmerge } from "deepmerge-ts"
@@ -100,7 +101,13 @@ export class NodejsFunction extends NodejsFunctionBase {
     const bundlingProps: NodejsFunctionBaseProps = {
       bundling: deepmerge(bundling, {
         sourceMap,
-        minify: isProd,
+        ...(isProd ? {
+          minify: true,
+          esbuildArgs: {
+            "--tree-shaking": "true",
+          },
+        } : {}),
+        format: OutputFormat.ESM,
         externalModules: [...computedExternalModules],
       } satisfies NodejsFunctionBaseProps['bundling']),
     }

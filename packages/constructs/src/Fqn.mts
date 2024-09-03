@@ -1,5 +1,5 @@
 import { Construct } from "constructs"
-import { enc as Encoder, MD5 } from "crypto-js"
+import crypto from "crypto-js"
 
 export interface FqnOptions {
   separator?: string
@@ -55,7 +55,7 @@ export function Fqn(construct: Construct, { suffix, separator, hashSeparator, al
   }
 
   // append the hash
-  name = [name, MD5(hashName).toString(Encoder.Hex).slice(0,8)].join(hashSeparator ?? '-')
+  name = [name, crypto.MD5(hashName).toString(crypto.enc.Hex).slice(0,8)].join(hashSeparator ?? '-')
 
   // apply transformation
   name = transform?.(name) ?? name

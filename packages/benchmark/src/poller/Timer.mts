@@ -1,5 +1,6 @@
-import { EventEmitter } from "./EventEmitter"
+import { EventEmitter } from "./EventEmitter.mjs"
 import { clamp } from "@sqsbench/helpers"
+import { Logger } from "@aws-lambda-powertools/logger"
 
 interface TimerEvents {
   timeout: void
@@ -9,8 +10,8 @@ export class Timer extends EventEmitter<TimerEvents> {
   private timer: NodeJS.Timeout | undefined
   private endTime: Date | undefined
 
-  constructor(private _duration: number) {
-    super()
+  constructor(private _duration: number, logger: Logger) {
+    super(logger)
     this.start()
   }
 

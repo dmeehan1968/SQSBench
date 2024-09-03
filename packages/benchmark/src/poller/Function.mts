@@ -1,6 +1,6 @@
 import { InvocationType, InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda"
-import { EventEmitter } from "./EventEmitter"
-import { Jsonifiable } from "./Jsonifiable"
+import { EventEmitter } from "./EventEmitter.mjs"
+import { Jsonifiable } from "./Jsonifiable.mjs"
 import { Logger } from "@aws-lambda-powertools/logger"
 
 interface FunctionEvents {
@@ -13,9 +13,9 @@ export class Function extends EventEmitter<FunctionEvents> {
   constructor(
     private readonly lambda: LambdaClient,
     private readonly functionArn: string,
-    private readonly logger: Logger,
+    logger: Logger,
   ) {
-    super()
+    super(logger)
   }
 
   async invoke(request: Jsonifiable) {
