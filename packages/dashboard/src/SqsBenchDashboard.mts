@@ -8,11 +8,11 @@ import { Statistic } from "@aws-sdk/client-cloudwatch"
 
 interface Props {
   tests: SqsTest[]
-  hourlyDutyCycle: number
+  dutyCyclePerHour: number
 }
 
 export class SqsBenchDashboard extends Construct {
-  constructor(scope: Construct, id: string, { tests, hourlyDutyCycle }: Props) {
+  constructor(scope: Construct, id: string, { tests, dutyCyclePerHour }: Props) {
     super(scope, id)
 
     const dashboard = new Dashboard(this, 'SqsTestDashboard', {
@@ -41,7 +41,7 @@ export class SqsBenchDashboard extends Construct {
           const cost = Fqn(test, { suffix: 'Cost', transform: toExprName })
           return new MathExpression({
             label: [Fqn(test, { allowedSpecialCharacters: '-' }), 'Cost Per Month ($)'].join(' '),
-            expression: `${cost} * ${hourlyDutyCycle} * 100 * 24 * 30`,
+            expression: `${cost} / ${dutyCyclePerHour} * 24 * 30`,
             usingMetrics: {
               [cost]: test.metricCost({ period }),
             },
@@ -53,7 +53,7 @@ export class SqsBenchDashboard extends Construct {
             const rate = Fqn(test, { suffix: 'Rate', transform: toExprName })
             return new MathExpression({
               label: 'Messages Rate (minute)',
-              expression: `${rate} * ${hourlyDutyCycle} * 100 / 60`,
+              expression: `${rate} / ${dutyCyclePerHour} / 60`,
               usingMetrics: {
                 [rate]: test.queue.metricNumberOfMessagesSent({
                   period: Duration.hours(1),

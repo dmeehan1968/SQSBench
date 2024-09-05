@@ -131,7 +131,7 @@ export class SqsBench extends Stack {
     // add dashboard
     new SqsBenchDashboard(this, 'Dashboard', {
       tests,
-      hourlyDutyCycle: props.dutyCycle * clamp(props.rateDurationInMinutes / 60, { max: 1 }),
+      dutyCyclePerHour: props.dutyCycle * clamp(props.rateDurationInMinutes / 60, { max: 1 }),
     })
 
     Tags.of(this).add('AppManagerCFNStackKey', process.env.npm_package_name ?? 'SqsBench')
