@@ -8,6 +8,7 @@ import { z } from "zod"
 import { SqsEmitterSettings, JsonSchema, SqsProducerControllerSettingsSchema } from "@sqsbench/schema"
 import pLimit from "p-limit"
 import { chunkArray } from "@sqsbench/helpers"
+import { weightedMessageDistribution } from "./weightedMessageDistribution.mjs"
 
 export class SqsProducerController {
   constructor(
@@ -27,7 +28,17 @@ export class SqsProducerController {
 
     this.logger.info('Event', { event: unknown })
 
-    const { dutyCycle, parameterName, queueUrls, minRate, maxRate, emitterArn, rateDurationInMinutes, rateScaleFactor } = SqsProducerControllerSettingsSchema.parse(unknown)
+    const {
+      dutyCycle,
+      parameterName,
+      queueUrls,
+      minRate,
+      maxRate,
+      emitterArn,
+      rateDurationInMinutes,
+      rateScaleFactor,
+      weightDistribution
+    } = SqsProducerControllerSettingsSchema.parse(unknown)
 
     if (!Array.isArray(queueUrls) || queueUrls.length === 0) {
       throw new Error('No queues')
@@ -90,7 +101,7 @@ export class SqsProducerController {
     this.logger.info(`Duty Phase - Send ${settings.rate} messages`)
 
     // Generate random delays for each message
-    const delays = Array.from({ length: settings.rate }, () => this.getRandomDelay()).sort((a, b) => a - b)
+    const delays = weightedMessageDistribution(settings.rate, 60, weightDistribution)
 
     const pending: Promise<any>[] = []
 
@@ -123,15 +134,6 @@ export class SqsProducerController {
 
     await Promise.allSettled(pending)
 
-  }
-
-  getRandomDelay() {
-    const baseDelay = Math.floor(Math.random() * 20)
-
-    // Add some randomness for busy/quiet periods
-    const busyPeriod = Math.random() < 0.5 ? 0 : Math.floor(Math.random() * 40)
-
-    return Math.min(baseDelay + busyPeriod, 60)
   }
 
 }

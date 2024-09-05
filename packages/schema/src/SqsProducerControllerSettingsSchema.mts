@@ -22,6 +22,7 @@ export const SqsProducerControllerSettingsSchema =
     rateDurationInMinutes: z.number().int().positive(),
     rateScaleFactor: z.number().positive(),
     dutyCycle: z.number().min(0).max(1).default(0.75),
+    weightDistribution: z.array(z.number().min(0)).min(1),
     parameterName: z.string().min(1),
     queueUrls: z.array(z.union([QueueUrlSchema, TokenSchema])),
     emitterArn: z.union([LambdaArnSchema, TokenSchema]),

@@ -52,6 +52,27 @@ interface Props {
    * The scale factor to apply to the rate when changing.  Must be greater than 0.  Default is 2.
    */
   rateScaleFactor?: number
+
+  /**
+   * The distribution of weights to apply to the messages sent.  Must be an array of numbers >= 0
+   * (decimals allowed), with at least one element.  The sum of the weights must be non-zero.
+   *
+   * The minute is split into equal segments relating to each weight. Messages are randomised into those
+   * segments according to the proportions expressed by the weights.
+   *
+   * The purpose is to allow you to provide a degree of busy/quiet time to each minute, rather than an even
+   * distribution that might be created by randomisation alone.  Because all tests use the same distribution,
+   * you can compare the performance of different configurations.
+   *
+   * Default is [1, 2, 1] which means that the middle 20 seconds of the minute will receive as many messages
+   * as the first and last 20 seconds combined.
+   *
+   * @example [1] and [1, 1] are equivalent and will send messages randomised across the minute
+   * @example [1, 0] will send all messages in the first 30 seconds of the minute
+   * @example [0, 1] will send all messages in the last 30 seconds of the minute
+   */
+
+  weightDistribution?: number[]
 }
 
 /**
@@ -63,7 +84,9 @@ interface Props {
  * useful comparisons of the tests.
  *
  * If no tests are enabled, the producer will be disabled, but all resources are created so that you can
- * enable and disable them as required.
+ * enable and disable them as required.  If the test is enabled but the producer is disabled (or in an idle phase)
+ * then no messages will be sent, but the consumers will still incur costs for the resources they use.  This is
+ * useful to determine baseline costs for idle queues.
  *
  * ## Backlog and Poller scale back
  *
@@ -126,6 +149,7 @@ export class SqsBench extends Stack {
       maxRate: props.maxRate,
       rateDurationInMinutes: props.rateDurationInMinutes,
       rateScaleFactor: props.rateScaleFactor,
+      weightDistribution: props.weightDistribution ?? [ 1, 2, 1 ],
     })
 
     // add dashboard
