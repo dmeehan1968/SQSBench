@@ -91,7 +91,9 @@ export class SqsProducerController {
       }))
     }
 
-    const isIdlePhase = startTime.getMinutes() >= (rateDurationInMinutes * dutyCycle) || settings.rate === 0
+    const commencedAt = settings.rateChangeAt.getTime() - (rateDurationInMinutes * 60 * 1000)
+    const elapsedMins = (startTime.getTime() - commencedAt) / 1000 / 60
+    const isIdlePhase = elapsedMins >= (rateDurationInMinutes * dutyCycle) || settings.rate === 0
 
     if (isIdlePhase) {
       this.logger.info('Idle Phase - No actions')
