@@ -8,7 +8,7 @@ new SqsBench(app, 'SqsBench', {
   minRate: 1,
   maxRate: 4096,
   consumerPerMessageDuration: Duration.millis(50),
-  dutyCycle: 1,
+  dutyCycle: 0.5,
   rateDurationInMinutes: 120,
   rateScaleFactor: 2,
   weightDistribution: [1, 2, 1],
