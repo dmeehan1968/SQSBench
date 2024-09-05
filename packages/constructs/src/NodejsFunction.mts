@@ -108,6 +108,7 @@ export class NodejsFunction extends NodejsFunctionBase {
           },
         } : {}),
         format: OutputFormat.ESM,
+        metafile: true,
         externalModules: [...computedExternalModules],
       } satisfies NodejsFunctionBaseProps['bundling']),
     }

@@ -12,6 +12,7 @@
   "dependencies": {
     "@sqsbench/benchmark": "0.0.1",
     "@sqsbench/dashboard": "0.0.1",
+    "@sqsbench/helpers": "^0.0.1",
     "@sqsbench/producer": "0.0.1"
   },
   "devDependencies": {

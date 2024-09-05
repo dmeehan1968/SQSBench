@@ -5,7 +5,7 @@ import middy from "@middy/core"
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware"
 import { Context } from "aws-lambda"
 import { z } from "zod"
-import { SqsEmitterSettings, JsonSchema, SqsProducerSettingsSchema } from "@sqsbench/schema"
+import { SqsEmitterSettings, JsonSchema, SqsProducerControllerSettingsSchema } from "@sqsbench/schema"
 import pLimit from "p-limit"
 import { chunkArray } from "@sqsbench/helpers"
 
@@ -27,7 +27,7 @@ export class SqsProducerController {
 
     this.logger.info('Event', { event: unknown })
 
-    const { dutyCycle, parameterName, queueUrls, minRate, maxRate, emitterArn } = SqsProducerSettingsSchema.parse(unknown)
+    const { dutyCycle, parameterName, queueUrls, minRate, maxRate, emitterArn, rateDurationInMinutes, rateScaleFactor } = SqsProducerControllerSettingsSchema.parse(unknown)
 
     if (!Array.isArray(queueUrls) || queueUrls.length === 0) {
       throw new Error('No queues')
@@ -42,24 +42,37 @@ export class SqsProducerController {
     startTime.setSeconds(0, 0)
     startTime.setMinutes(startTime.getMinutes() + 1)
 
-    // start at 0 rate, which will be idle until top of the next hour
-    let settings: { rate: number } = { rate: 0 }
+    const ParameterSchema = z.object({
+      rate: z.number().default(0),
+      rateChangeAt: z.coerce.date().optional(),
+    }).default({})
 
-    if (res.Parameter) {
-      // if this fails we'll just use the default settings
-      try {
-        settings = JsonSchema.pipe(z.object({ rate: z.number() })).parse(res.Parameter.Value)
-      } catch (_err) {}
+    let settings = ParameterSchema.parse(undefined)
+
+    try {
+      settings = JsonSchema.pipe(ParameterSchema).parse(res.Parameter?.Value)
+    } catch (error) {
+      this.logger.error('Invalid parameter value, using default', { value: res.Parameter?.Value, error, default: settings })
     }
 
     this.logger.info('Settings', { settings })
 
-    if (startTime.getMinutes() === 0) {
-      settings.rate = settings.rate === 0
-        ? minRate
-        : settings.rate < maxRate
-          ? settings.rate * 2
-          : 0
+    if (settings.rateChangeAt === undefined || new Date() > settings.rateChangeAt) {
+      if (settings.rateChangeAt !== undefined) {
+        settings.rate = settings.rate === 0
+          ? minRate
+          : settings.rate < maxRate
+            ? settings.rate * rateScaleFactor
+            : 0
+      }
+
+      settings.rateChangeAt = new Date()
+      if (settings.rate === 0) {
+        settings.rateChangeAt.setHours(settings.rateChangeAt.getHours() + 1, 0, 0, 0)
+      } else {
+        settings.rateChangeAt.setMinutes(settings.rateChangeAt.getMinutes() + rateDurationInMinutes, 0, 0)
+      }
+
       await this.ssm.send(new PutParameterCommand({
         Name: parameterName,
         Value: JSON.stringify(settings),
@@ -67,7 +80,7 @@ export class SqsProducerController {
       }))
     }
 
-    const isIdlePhase = startTime.getMinutes() >= (60 * dutyCycle) || settings.rate === 0
+    const isIdlePhase = startTime.getMinutes() >= (rateDurationInMinutes * dutyCycle) || settings.rate === 0
 
     if (isIdlePhase) {
       this.logger.info('Idle Phase - No actions')

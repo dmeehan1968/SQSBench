@@ -9,8 +9,10 @@ new SqsBench(app, 'SqsBench', {
   maxRate: 4096,
   consumerPerMessageDuration: Duration.millis(50),
   dutyCycle: 1,
+  rateDurationInMinutes: 120,
+  rateScaleFactor: 2,
   tests: [
-    { enabled: false, batchSize: 10, batchWindow: Duration.seconds(0), pollerType: PollerType.Lambda, maxSessionDuration: Duration.seconds(60), maxConcurrency: 2 },
+    { enabled: true, batchSize: 10, batchWindow: Duration.seconds(0), pollerType: PollerType.Lambda, maxSessionDuration: Duration.seconds(60), maxConcurrency: 2 },
     // { enabled: false, batchSize: 10, batchWindow: Duration.seconds(5), pollerType: PollerType.Lambda, maxSessionDuration: Duration.seconds(60), maxConcurrency: 2 },
     // { enabled: false, batchSize: 10, batchWindow: Duration.seconds(10), pollerType: PollerType.Lambda, maxSessionDuration: Duration.seconds(60), maxConcurrency: 2 },
     // { enabled: false, batchSize: 10, batchWindow: Duration.seconds(20), pollerType: PollerType.Lambda, maxSessionDuration: Duration.seconds(60), maxConcurrency: 2 },
