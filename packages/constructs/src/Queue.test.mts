@@ -1,6 +1,6 @@
-import { Queue } from './Queue.mjs'
 import { App, Stack } from 'aws-cdk-lib'
 import { Match, Template } from 'aws-cdk-lib/assertions'
+import { Queue } from './Queue.mjs'
 
 describe('Queue', () => {
   it('should provide useful defaults', () => {
