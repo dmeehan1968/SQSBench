@@ -6,8 +6,13 @@ import { Fqn } from "@sqsbench/constructs"
 import { toExprName } from "@sqsbench/helpers"
 import { Statistic } from "@aws-sdk/client-cloudwatch"
 
+interface Props {
+  tests: SqsTest[]
+  dutyCycle: number
+}
+
 export class SqsBenchDashboard extends Construct {
-  constructor(scope: Construct, id: string, { tests }: { tests: SqsTest[] }) {
+  constructor(scope: Construct, id: string, { tests, dutyCycle }: Props) {
     super(scope, id)
 
     const dashboard = new Dashboard(this, 'SqsTestDashboard', {
@@ -36,7 +41,7 @@ export class SqsBenchDashboard extends Construct {
           const cost = Fqn(test, { suffix: 'Cost', transform: toExprName })
           return new MathExpression({
             label: [Fqn(test, { allowedSpecialCharacters: '-' }), 'Cost Per Month ($)'].join(' '),
-            expression: `${cost} / 75 * 100 * 24 * 30`,
+            expression: `${cost} * ${dutyCycle} * 100 * 24 * 30`,
             usingMetrics: {
               [cost]: test.metricCost({ period }),
             },
@@ -48,7 +53,7 @@ export class SqsBenchDashboard extends Construct {
             const rate = Fqn(test, { suffix: 'Rate', transform: toExprName })
             return new MathExpression({
               label: 'Messages Rate (minute)',
-              expression: `${rate} / 75 * 100 / 60`,
+              expression: `${rate} * ${dutyCycle} * 100 / 60`,
               usingMetrics: {
                 [rate]: test.queue.metricNumberOfMessagesSent({
                   period: Duration.hours(1),

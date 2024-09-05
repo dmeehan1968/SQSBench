@@ -60,6 +60,7 @@ export class SqsBench extends Stack {
     // add dashboard
     new SqsBenchDashboard(this, 'Dashboard', {
       tests,
+      dutyCycle: props.dutyCycle,
     })
 
     Tags.of(this).add('AppManagerCFNStackKey', process.env.npm_package_name ?? 'SqsBench')
