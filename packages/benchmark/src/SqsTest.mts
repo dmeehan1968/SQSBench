@@ -19,19 +19,36 @@ export enum PollerType {
 
 interface PipeProps {
   pollerType: PollerType.Pipe
+
+  /**
+   * Enable high resolution metrics.  Also requires the batch window to be 0 or it will only generate standard metrics
+   */
+  highResMetrics?: boolean
   maxConcurrency?: never
   maxSessionDuration?: never
 }
 
 interface EventSourceProps {
   pollerType: PollerType.EventSource
+  /**
+   * Maximum event source concurrency
+   */
   maxConcurrency?: number
   maxSessionDuration?: never
 }
 
 interface LambdaProps {
   pollerType: PollerType.Lambda
+
+  /**
+   * Maximum number of concurrent consumers
+   */
   maxConcurrency: number
+  /**
+   * Maximum period that the poller can attempt to read messages.  Will automatically stop reading on first empty
+   * receive, but will continue to poll for messages until the max session duration is reached if the poll response(s)
+   * are not empty.
+   */
   maxSessionDuration: Duration
 }
 
@@ -48,6 +65,7 @@ export class SqsTest extends Construct {
   public readonly poller: NodejsFunction | undefined
 
   public readonly enabled: boolean
+  public readonly supportsHighRes: boolean
 
   constructor(scope: Construct, props: SqsTestProps) {
 
@@ -71,6 +89,8 @@ export class SqsTest extends Construct {
       throw new Error('Per Message Duration * Batch Size cannot exceed 897 seconds')
     }
 
+    this.supportsHighRes = props.pollerType === PollerType.Pipe && props.batchWindow.toSeconds() === 0 && (props.highResMetrics ?? false)
+
     this.consumer = new NodejsFunction(this, 'Consumer', {
       entry: import.meta.resolve('./consumer/index.mts').replace(/^file:\/\//, ''),
       deadLetterQueue: this.queue.deadLetterQueue?.queue,
@@ -78,6 +98,7 @@ export class SqsTest extends Construct {
       memorySize: 128,
       environment: {
         PER_MESSAGE_DURATION: perMessageDuration.toMilliseconds().toString(),
+        HIGH_RES_METRICS: this.supportsHighRes ? 'true' : 'false',
       },
       timeout,
     })

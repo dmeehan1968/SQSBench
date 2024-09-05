@@ -1,7 +1,7 @@
 import { Duration } from "aws-cdk-lib"
 import { Construct } from "constructs"
 import { SqsTest } from "@sqsbench/benchmark"
-import { Dashboard, GraphWidget, MathExpression, PeriodOverride } from "aws-cdk-lib/aws-cloudwatch"
+import { Dashboard, GraphWidget, IMetric, MathExpression, PeriodOverride } from "aws-cdk-lib/aws-cloudwatch"
 import { Fqn } from "@sqsbench/constructs"
 import { toExprName } from "@sqsbench/helpers"
 import { Statistic } from "@aws-sdk/client-cloudwatch"
@@ -22,6 +22,17 @@ export class SqsBenchDashboard extends Construct {
     })
 
     const period = Duration.minutes(1)
+    const width = 8
+    const height = undefined
+
+    let highResMetric: IMetric | undefined
+    highResMetric = tests.filter(test => test.supportsHighRes).map(test => test.metricConsumerBatchSize({ label: 'Messages Received', period: Duration.seconds(1), statistic: Statistic.Sum }))[0]
+    if (!highResMetric) {
+      highResMetric = new MathExpression({
+        label: 'High Res Metric Not Configured',
+        expression: '0',
+      })
+    }
 
     dashboard.addWidgets(
       new GraphWidget({
@@ -37,6 +48,8 @@ export class SqsBenchDashboard extends Construct {
       }),
       new GraphWidget({
         title: 'Test Cost Per Month',
+        width,
+        height,
         left: tests.map(test => {
           const cost = Fqn(test, { suffix: 'Cost', transform: toExprName })
           return new MathExpression({
@@ -68,6 +81,8 @@ export class SqsBenchDashboard extends Construct {
       }),
       new GraphWidget({
         title: 'Consumer Cost',
+        width,
+        height,
         left: tests.map(test => test.metricConsumerCost({ period })),
         right: [
           // use the first test queue as a proxy for the producer
@@ -77,6 +92,8 @@ export class SqsBenchDashboard extends Construct {
       }),
       new GraphWidget({
         title: 'Cost Per Message',
+        width,
+        height,
         left: tests.map(test => {
           const cost = Fqn(test, { suffix: 'CPMCost', transform: toExprName })
           const receives = Fqn(test, { suffix: 'CPMReceives', transform: toExprName })
@@ -97,6 +114,8 @@ export class SqsBenchDashboard extends Construct {
       }),
       new GraphWidget({
         title: 'Number of Visible Messages',
+        width,
+        height,
         left: tests.map(test => test.queue.metricApproximateNumberOfMessagesVisible({
           period,
           statistic: Statistic.Maximum,
@@ -105,6 +124,8 @@ export class SqsBenchDashboard extends Construct {
       }),
       new GraphWidget({
         title: 'Age of Oldest Messages',
+        width,
+        height,
         left: tests.map(test => test.queue.metricApproximateAgeOfOldestMessage({
           period,
           statistic: Statistic.Maximum,
@@ -113,6 +134,8 @@ export class SqsBenchDashboard extends Construct {
       }),
       new GraphWidget({
         title: 'Receives',
+        width,
+        height,
         left: tests.map(test => test.queue.metricNumberOfMessagesReceived({
           period,
           statistic: Statistic.SampleCount,
@@ -120,6 +143,8 @@ export class SqsBenchDashboard extends Construct {
       }),
       new GraphWidget({
         title: 'Empty Receives',
+        width,
+        height,
         left: tests.map(test => test.queue.metricNumberOfEmptyReceives({
           period,
           statistic: Statistic.Sum,
@@ -128,7 +153,16 @@ export class SqsBenchDashboard extends Construct {
       }),
       new GraphWidget({
         title: 'Batch Size',
+        width,
+        height,
         left: tests.map(test => test.metricConsumerBatchSize({ period })),
+        period,
+      }),
+      new GraphWidget({
+        title: `Apparent Message Rate (${highResMetric instanceof MathExpression ? 'Disabled' : 'High Res'})`,
+        width,
+        height,
+        left: [highResMetric],
         period,
       }),
     )

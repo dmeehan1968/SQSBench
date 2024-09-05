@@ -1,4 +1,4 @@
-import { Metrics, MetricUnit } from "@aws-lambda-powertools/metrics"
+import { MetricResolution, Metrics, MetricUnit } from "@aws-lambda-powertools/metrics"
 import middy from "@middy/core"
 import { logMetrics } from "@aws-lambda-powertools/metrics/middleware"
 import pLimit from "p-limit"
@@ -27,7 +27,12 @@ export const handler = middy()
       PER_MESSAGE_DURATION: process.env.PER_MESSAGE_DURATION
     })
 
-    metrics.addMetric("MessagesReceived", MetricUnit.Count, records.length)
+    metrics.addMetric(
+      "MessagesReceived",
+      MetricUnit.Count,
+      records.length,
+      process.env.HIGH_RES_METRICS === 'true' ? MetricResolution.High : MetricResolution.Standard
+    )
 
     const limit = pLimit(1)
     const duration = parseInt(process.env.PER_MESSAGE_DURATION || '50')

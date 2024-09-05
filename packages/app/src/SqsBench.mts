@@ -70,6 +70,7 @@ interface Props {
    * @example [1] and [1, 1] are equivalent and will send messages randomised across the minute
    * @example [1, 0] will send all messages in the first 30 seconds of the minute
    * @example [0, 1] will send all messages in the last 30 seconds of the minute
+   * @example Array.from({ length: 60 }, (_, index) => index === 29 ? 1 : 0) will send all messages in the 30th second
    */
 
   weightDistribution?: number[]
