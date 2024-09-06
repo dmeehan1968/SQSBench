@@ -32,8 +32,8 @@ export class SqsPollerController {
 
     const consumer = new Function(this.lambda, props.functionArn, this.logger)
     const queue = new Queue(this.sqs, props.queueUrl, this.logger)
-    using sessionTimer = new Timer(clamp(props.maxSessionDuration * 1000, { max: Math.max(0, context.getRemainingTimeInMillis() - 10_000) }))
-    using batchTimer = new Timer(props.batchWindow * 1000)
+    using sessionTimer = new Timer(clamp(props.maxSessionDuration * 1000, { max: Math.max(0, context.getRemainingTimeInMillis() - 10_000) }), this.logger)
+    using batchTimer = new Timer(props.batchWindow * 1000, this.logger)
     const batch = new Batch<Message>(props.batchSize, this.logger)
     const concurrencyController = pLimit(props.maxConcurrency)
 
