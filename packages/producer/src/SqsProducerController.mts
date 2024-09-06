@@ -68,7 +68,7 @@ export class SqsProducerController {
 
     this.logger.info('Settings', { settings })
 
-    if (settings.rateChangeAt === undefined || new Date() > settings.rateChangeAt) {
+    if (settings.rateChangeAt === undefined || startTime >= settings.rateChangeAt) {
       if (settings.rateChangeAt !== undefined) {
         settings.rate = settings.rate === 0
           ? minRate
@@ -77,23 +77,28 @@ export class SqsProducerController {
             : 0
       }
 
-      settings.rateChangeAt = new Date()
+      settings.rateChangeAt = new Date(startTime)
       if (settings.rate === 0) {
         settings.rateChangeAt.setHours(settings.rateChangeAt.getHours() + 1, 0, 0, 0)
       } else {
         settings.rateChangeAt.setMinutes(settings.rateChangeAt.getMinutes() + rateDurationInMinutes, 0, 0)
       }
 
-      await this.ssm.send(new PutParameterCommand({
+      const response = await this.ssm.send(new PutParameterCommand({
         Name: parameterName,
         Value: JSON.stringify(settings),
         Overwrite: true,
       }))
+
+      this.logger.debug('Updated parameter', { settings, response })
     }
 
     const commencedAt = settings.rateChangeAt.getTime() - (rateDurationInMinutes * 60 * 1000)
     const elapsedMins = (startTime.getTime() - commencedAt) / 1000 / 60
+
     const isIdlePhase = elapsedMins >= (rateDurationInMinutes * dutyCycle) || settings.rate === 0
+
+    this.logger.debug('Idle conditions', { elapsedMins, rateDurationInMinutes, dutyCycle, isIdlePhase})
 
     if (isIdlePhase) {
       this.logger.info('Idle Phase - No actions')
@@ -110,14 +115,14 @@ export class SqsProducerController {
     // limit concurrency to 50, same as lambda client connection limit
     const limit = pLimit(50)
 
-    // Send 500 delays to each lambda invocation (which result in 50 batch sends of 10 messages)
+    // Send 500 delays to each lambda invocation (which result in 50 batch sends of 10 messages each)
     const chunks = chunkArray(delays, 500)
 
     for (let chunk of chunks) {
       for (let queueUrl of queueUrls) {
         pending.push(limit(async () => {
-          this.logger.info(`Sending ${chunk.length} messages to ${queueUrl}`)
-          const res = await this.lambda.send(new InvokeCommand({
+          this.logger.info(`Invoking emitter with ${chunk.length} messages for ${queueUrl}`)
+          const response = await this.lambda.send(new InvokeCommand({
             FunctionName: emitterArn,
             InvocationType: InvocationType.Event,
             Payload: Buffer.from(JSON.stringify({
@@ -126,10 +131,10 @@ export class SqsProducerController {
               startTime,
             } satisfies SqsEmitterSettings)),
           }))
-          if (res.StatusCode === undefined || res.StatusCode < 200 || res.StatusCode >= 300) {
-            this.logger.error('Lambda invocation failed', { response: res })
+          if (response.StatusCode === undefined || response.StatusCode < 200 || response.StatusCode >= 300) {
+            this.logger.error('Lambda invocation failed', { response })
           }
-          return res
+          return response
         }))
       }
     }
