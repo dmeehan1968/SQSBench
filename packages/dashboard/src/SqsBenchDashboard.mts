@@ -1,7 +1,7 @@
 import { Duration } from "aws-cdk-lib"
 import { Construct } from "constructs"
 import { SqsTest } from "@sqsbench/benchmark"
-import { Dashboard, GraphWidget, IMetric, MathExpression, PeriodOverride } from "aws-cdk-lib/aws-cloudwatch"
+import { Dashboard, GraphWidget, IMetric, MathExpression, Metric, PeriodOverride } from "aws-cdk-lib/aws-cloudwatch"
 import { Fqn } from "@sqsbench/constructs"
 import { toExprName } from "@sqsbench/helpers"
 import { Statistic } from "@aws-sdk/client-cloudwatch"
@@ -25,12 +25,21 @@ export class SqsBenchDashboard extends Construct {
     const width = 8
     const height = undefined
 
-    let highResMetric: IMetric | undefined
-    highResMetric = tests.filter(test => test.supportsHighRes).map(test => test.metricConsumerBatchSize({ label: 'Messages Received', period: Duration.seconds(1), statistic: Statistic.Sum }))[0]
-    if (!highResMetric) {
-      highResMetric = new MathExpression({
-        label: 'High Res Metric Not Configured',
-        expression: '0',
+    // apparent message rate is only available if high res metrics are enabled
+    let apparentMessageRateMetric: IMetric | undefined
+    apparentMessageRateMetric = tests
+      .filter(test => test.supportsHighRes)
+      .map(test => test.metricConsumerBatchSize({ label: 'Messages Received', period: Duration.seconds(1), statistic: Statistic.Sum }))
+      .shift()
+
+    // if there are no high res metrics, add a placeholder so the widget is still valid.
+    if (!apparentMessageRateMetric) {
+      apparentMessageRateMetric = new Metric({
+        metricName: 'HighResMetricNotConfigured',
+        namespace: 'HighResMetricNotConfigured',
+        dimensionsMap: {},
+        period,
+        statistic: Statistic.Sum,
       })
     }
 
@@ -159,10 +168,10 @@ export class SqsBenchDashboard extends Construct {
         period,
       }),
       new GraphWidget({
-        title: `Apparent Message Rate (${highResMetric instanceof MathExpression ? 'Disabled' : 'High Res'})`,
+        title: `Apparent Message Rate (${apparentMessageRateMetric instanceof MathExpression ? 'Disabled' : 'High Res'})`,
         width,
         height,
-        left: [highResMetric],
+        left: [apparentMessageRateMetric],
         period,
       }),
     )

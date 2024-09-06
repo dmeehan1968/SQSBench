@@ -22,6 +22,9 @@ interface PipeProps {
 
   /**
    * Enable high resolution metrics.  Also requires the batch window to be 0 or it will only generate standard metrics
+   *
+   * WARNING: You only need to enable this on one Pipe test in the dashboard or more metrics will be generated
+   * than needed
    */
   highResMetrics?: boolean
   maxConcurrency?: never
@@ -89,7 +92,7 @@ export class SqsTest extends Construct {
       throw new Error('Per Message Duration * Batch Size cannot exceed 897 seconds')
     }
 
-    this.supportsHighRes = props.pollerType === PollerType.Pipe && props.batchWindow.toSeconds() === 0 && (props.highResMetrics ?? false)
+    this.supportsHighRes = props.pollerType === PollerType.Pipe && props.batchWindow.toSeconds() === 0
 
     this.consumer = new NodejsFunction(this, 'Consumer', {
       entry: import.meta.resolve('./consumer/index.mts').replace(/^file:\/\//, ''),
@@ -98,7 +101,7 @@ export class SqsTest extends Construct {
       memorySize: 128,
       environment: {
         PER_MESSAGE_DURATION: perMessageDuration.toMilliseconds().toString(),
-        HIGH_RES_METRICS: this.supportsHighRes ? 'true' : 'false',
+        HIGH_RES_METRICS: this.supportsHighRes && (props.pollerType === PollerType.Pipe && (props.highResMetrics ?? false)) ? 'true' : 'false',
       },
       timeout,
     })
@@ -179,9 +182,12 @@ export class SqsTest extends Construct {
   metricPollerCost({ period = Duration.minutes(1), label = 'Cost', statistic = Statistic.Sum }: { period?: Duration, label?: string, statistic?: Statistic } = {}): IMetric {
 
     if (!this.poller) {
-      return new MathExpression({
-        label: [Fqn(this, { allowedSpecialCharacters: '-' }), label].join(' '),
-        expression: '0',
+      return new Metric({
+        metricName: [Fqn(this, { allowedSpecialCharacters: '-' }), label].join(' '),
+        namespace: 'HighResMetricNotConfigured',
+        dimensionsMap: {},
+        period,
+        statistic: Statistic.Sum,
       })
     }
 

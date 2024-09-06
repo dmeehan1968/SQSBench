@@ -117,6 +117,9 @@ interface Props {
  * even if it has already run.  Use the enable property to disable a test whilst retaining the ability to review
  * its history via the Dashboard.
  *
+ * Note: CloudWatch standard resolution metrics (>= 1 minute resolution) are retained for up to 15 days, and
+ * high resolution metrics (1 second resolution) are retained for 3 hours.
+ *
  * ## Producer Parameter
  *
  * The producer maintains a String Parameter in the AWS Parameter Store which is a JSON representation of its
