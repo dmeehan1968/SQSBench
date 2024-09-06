@@ -25,14 +25,14 @@ export class SqsBenchDashboard extends Construct {
     const width = 8
     const height = undefined
 
-    // apparent message rate is only available if high res metrics are enabled
+    // apparent message rate is only available if high-res metrics are enabled
     let apparentMessageRateMetric: IMetric | undefined
     apparentMessageRateMetric = tests
       .filter(test => test.supportsHighRes)
       .map(test => test.metricConsumerBatchSize({ label: 'Messages Received', period: Duration.seconds(1), statistic: Statistic.Sum }))
       .shift()
 
-    // if there are no high res metrics, add a placeholder so the widget is still valid.
+    // if there are no high-res metrics, add a placeholder so the widget is still valid.
     if (!apparentMessageRateMetric) {
       apparentMessageRateMetric = new Metric({
         metricName: 'HighResMetricNotConfigured',
@@ -108,7 +108,7 @@ export class SqsBenchDashboard extends Construct {
           const receives = Fqn(test, { suffix: 'CPMReceives', transform: toExprName })
           return new MathExpression({
             label: Fqn(test, { allowedSpecialCharacters: '-' }) + ' Cost Per Message',
-            expression: `${cost} / ${receives}`,
+            expression: `${cost} / FILL(${receives},0)`,
             usingMetrics: {
               [cost]: test.metricCost({ period }),
               [receives]: test.queue.metricNumberOfMessagesReceived({ period, statistic: Statistic.Sum }),
