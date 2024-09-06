@@ -120,6 +120,12 @@ interface Props {
  * Note: CloudWatch standard resolution metrics (>= 1 minute resolution) are retained for up to 15 days, and
  * high resolution metrics (1 second resolution) are retained for 3 hours.
  *
+ * Note: If enabling high-res metrics for a pipe poller, only the first one is used in the dashboard.  Enabling
+ * more than one is redundant and will generate more metrics than needed (unless you want to do your own metrics,
+ * but as they are calculated on pipes which are low latency, you will likely get very similar results).  If adding
+ * pipe tests after establishing high-res metrics, put the new tests after the initial one, or the dashboard will
+ * not show all the historical metrics.
+ *
  * ## Producer Parameter
  *
  * The producer maintains a String Parameter in the AWS Parameter Store which is a JSON representation of its

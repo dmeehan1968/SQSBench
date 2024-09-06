@@ -26,17 +26,20 @@ export class SqsBenchDashboard extends Construct {
     const height = undefined
 
     // apparent message rate is only available if high-res metrics are enabled
+    const testsWithHighRes = tests.filter(test => test.highResMetricsEnabled)
+    let apparentMessageRateTitle = `Weighted Message Rate - ${testsWithHighRes.length ? 'High-Res' : 'Standard-Res Only' }`
     let apparentMessageRateMetric: IMetric | undefined
     apparentMessageRateMetric = tests
-      .filter(test => test.supportsHighRes)
-      .map(test => test.metricConsumerBatchSize({ label: 'Messages Received', period: Duration.seconds(1), statistic: Statistic.Sum }))
+      .slice(0, 1)    // only use the first one
+      .map(test => test.metricConsumerMessagesReceived({ label: 'Messages Received', period: Duration.seconds(1), statistic: Statistic.Sum }))
       .shift()
 
     // if there are no high-res metrics, add a placeholder so the widget is still valid.
     if (!apparentMessageRateMetric) {
+      apparentMessageRateTitle += ' (Not Enabled)'
       apparentMessageRateMetric = new Metric({
-        metricName: 'HighResMetricNotConfigured',
-        namespace: 'HighResMetricNotConfigured',
+        metricName: 'HighResMetricPlaceholder',
+        namespace: 'HighResMetricPlaceholder',
         dimensionsMap: {},
         period,
         statistic: Statistic.Sum,
@@ -45,10 +48,10 @@ export class SqsBenchDashboard extends Construct {
 
     dashboard.addWidgets(
       new GraphWidget({
-        title: 'Test Cost',
+        title: 'Total Cost Per Period',
         width: 24,
         height: 16,
-        left: tests.map(test => test.metricCost({ period })),
+        left: tests.map(test => test.metricTotalCost({ period })),
         right: [
           // use the first test queue as a proxy for the producer
           tests[0].queue.metricNumberOfMessagesSent({ period, label: 'Message Rate', statistic: Statistic.Sum }),
@@ -56,7 +59,7 @@ export class SqsBenchDashboard extends Construct {
         period,
       }),
       new GraphWidget({
-        title: 'Test Cost Per Month',
+        title: 'Total Cost Per Month',
         width,
         height,
         left: tests.map(test => {
@@ -65,7 +68,7 @@ export class SqsBenchDashboard extends Construct {
             label: [Fqn(test, { allowedSpecialCharacters: '-' }), 'Cost Per Month ($)'].join(' '),
             expression: `${cost} / ${dutyCyclePerHour} * 24 * 30`,
             usingMetrics: {
-              [cost]: test.metricCost({ period }),
+              [cost]: test.metricTotalCost({ period }),
             },
           })
         }),
@@ -89,7 +92,7 @@ export class SqsBenchDashboard extends Construct {
         period: Duration.hours(1),
       }),
       new GraphWidget({
-        title: 'Consumer Cost',
+        title: 'Cost of Consumer',
         width,
         height,
         left: tests.map(test => test.metricConsumerCost({ period })),
@@ -110,7 +113,7 @@ export class SqsBenchDashboard extends Construct {
             label: Fqn(test, { allowedSpecialCharacters: '-' }) + ' Cost Per Message',
             expression: `${cost} / FILL(${receives},0)`,
             usingMetrics: {
-              [cost]: test.metricCost({ period }),
+              [cost]: test.metricTotalCost({ period }),
               [receives]: test.queue.metricNumberOfMessagesReceived({ period, statistic: Statistic.Sum }),
             },
           })
@@ -122,7 +125,7 @@ export class SqsBenchDashboard extends Construct {
         period,
       }),
       new GraphWidget({
-        title: 'Number of Visible Messages',
+        title: 'Approximate Number of Visible Messages',
         width,
         height,
         left: tests.map(test => test.queue.metricApproximateNumberOfMessagesVisible({
@@ -132,7 +135,7 @@ export class SqsBenchDashboard extends Construct {
         period,
       }),
       new GraphWidget({
-        title: 'Age of Oldest Messages',
+        title: 'Approximate Age of Oldest Messages',
         width,
         height,
         left: tests.map(test => test.queue.metricApproximateAgeOfOldestMessage({
@@ -142,7 +145,7 @@ export class SqsBenchDashboard extends Construct {
         period,
       }),
       new GraphWidget({
-        title: 'Receives',
+        title: 'Messages Received',
         width,
         height,
         left: tests.map(test => test.queue.metricNumberOfMessagesReceived({
@@ -161,14 +164,14 @@ export class SqsBenchDashboard extends Construct {
         period,
       }),
       new GraphWidget({
-        title: 'Batch Size',
+        title: 'Average Messages Received at Consumer',
         width,
         height,
-        left: tests.map(test => test.metricConsumerBatchSize({ period })),
+        left: tests.map(test => test.metricConsumerMessagesReceived({ period })),
         period,
       }),
       new GraphWidget({
-        title: `Apparent Message Rate (${apparentMessageRateMetric instanceof MathExpression ? 'Disabled' : 'High Res'})`,
+        title: apparentMessageRateTitle,
         width,
         height,
         left: [apparentMessageRateMetric],

@@ -1,6 +1,6 @@
 import { Construct } from 'constructs'
 import { Duration } from "aws-cdk-lib"
-import { Queue, NodejsFunction, Fqn, LambdaCostMetric, SqsCostMetric } from "@sqsbench/constructs"
+import { Fqn, LambdaCostMetric, NodejsFunction, PipeCostMetric, Queue, SqsCostMetric } from "@sqsbench/constructs"
 import { toExprName } from "@sqsbench/helpers"
 import { Rule, RuleTargetInput, Schedule } from "aws-cdk-lib/aws-events"
 import { LambdaFunction } from "aws-cdk-lib/aws-events-targets"
@@ -66,9 +66,10 @@ export class SqsTest extends Construct {
   public readonly queue: Queue
   public readonly consumer: NodejsFunction
   public readonly poller: NodejsFunction | undefined
-
+  public readonly pipe: Pipe | undefined
   public readonly enabled: boolean
   public readonly supportsHighRes: boolean
+  public readonly highResMetricsEnabled: boolean
 
   constructor(scope: Construct, props: SqsTestProps) {
 
@@ -93,6 +94,7 @@ export class SqsTest extends Construct {
     }
 
     this.supportsHighRes = props.pollerType === PollerType.Pipe && props.batchWindow.toSeconds() === 0
+    this.highResMetricsEnabled = props.pollerType === PollerType.Pipe && props.batchWindow.toSeconds() === 0 && (props.highResMetrics ?? false)
 
     this.consumer = new NodejsFunction(this, 'Consumer', {
       entry: import.meta.resolve('./consumer/index.mts').replace(/^file:\/\//, ''),
@@ -109,7 +111,7 @@ export class SqsTest extends Construct {
     switch (props.pollerType) {
 
       case PollerType.Pipe:
-        new Pipe(this, 'Pipe', {
+        this.pipe = new Pipe(this, 'Pipe', {
           pipeName: Fqn(this, { allowedSpecialCharacters: '-' }),
           source: new SqsSource(this.queue, {
             batchSize: props.batchSize,
@@ -171,64 +173,69 @@ export class SqsTest extends Construct {
   }
 
   /*
-   * Calculate the cost of the poller
+   * Calculate the cost of the poller type
    *
-   * If the test is not using the poller, it will generate a 0 value
+   * EventSource Mapping doesn't seem to have a cost other than the invoked lambda, which is the consumer and
+   * costed separately
    *
    * @param period The period over which to calculate the cost - default 1 minute
    * @param label The label to use for the metric - default 'Cost'
    * @param statistic The statistic to use for the metric - default Sum
    */
-  metricPollerCost({ period = Duration.minutes(1), label = 'Cost', statistic = Statistic.Sum }: { period?: Duration, label?: string, statistic?: Statistic } = {}): IMetric {
+  metricPollingCost({ period = Duration.minutes(1), label = 'Cost', statistic = Statistic.Sum }: { period?: Duration, label?: string, statistic?: Statistic } = {}): IMetric {
 
-    if (!this.poller) {
-      return new Metric({
-        metricName: [Fqn(this, { allowedSpecialCharacters: '-' }), label].join(' '),
-        namespace: 'HighResMetricNotConfigured',
-        dimensionsMap: {},
-        period,
-        statistic: Statistic.Sum,
-      })
+    if (this.pipe) {
+      return new PipeCostMetric(this.pipe, { period, label, statistic })
     }
 
-    return new LambdaCostMetric(this.poller, { period, label, statistic })
+    if (this.poller) {
+      return new LambdaCostMetric(this.poller, { period, label, statistic })
+    }
+
+    // return a placeholder
+    return new Metric({
+      metricName: [Fqn(this, { allowedSpecialCharacters: '-' }), label].join(' '),
+      namespace: 'PlaceholderNamespace',
+      dimensionsMap: {},
+      period,
+      statistic: Statistic.Sum,
+    })
   }
 
   /*
    * Calculate the cost of the consumer
-   *
-   * If the test is not using the poller, it will generate a 0 value
    *
    * @param period The period over which to calculate the cost - default 1 minute
    * @param label The label to use for the metric - default 'Cost'
    * @param statistic The statistic to use for the metric - default Sum
    */
   metricConsumerCost({ period = Duration.minutes(1), label = 'Cost', statistic = Statistic.Sum }: { period?: Duration, label?: string, statistic?: Statistic } = {}): IMetric {
-
     return new LambdaCostMetric(this.consumer, { period, label, statistic })
   }
 
   /*
-   * Calculate the cost of the entire test
+   * Calculate the cost of the entire test (SQS, polling type and consumer)
    *
    * @param period The period over which to calculate the cost - default 1 minute
    * @param label The label to use for the metric - default 'Cost'
    * @param statistic The statistic to use for the metric - default Sum
    */
-  metricCost({ period = Duration.minutes(1), label = 'Cost', statistic = Statistic.Sum }: { period?: Duration, label?: string, statistic?: Statistic } = {}): IMetric {
+  metricTotalCost({ period = Duration.minutes(1), label = 'Cost', statistic = Statistic.Sum }: { period?: Duration, label?: string, statistic?: Statistic } = {}): IMetric {
     const sqsCost = Fqn(this, { suffix: 'SqsCost', transform: toExprName })
-    const pollerCost = Fqn(this, { suffix: 'PollerCost', transform: toExprName })
+    const pollingCost = Fqn(this, { suffix: 'PollingCost', transform: toExprName })
+    const consumerCost = Fqn(this, { suffix: 'ConsumerCost', transform: toExprName })
     return new MathExpression({
       label: [Fqn(this, { allowedSpecialCharacters: '-' }), label].join(' '),
-      expression: `${sqsCost} + ${pollerCost}`,
+      expression: `${sqsCost} + ${pollingCost} + ${consumerCost}`,
       usingMetrics: {
-        [sqsCost]: this.metricSqsCost({ period }),
-        [pollerCost]: this.metricPollerCost({ period, label: 'Cost', statistic }),
+        [sqsCost]: this.metricSqsCost({ period, label: 'SQS Cost' }),
+        [pollingCost]: this.metricPollingCost({ period, label: 'Polling Cost', statistic }),
+        [consumerCost]: this.metricConsumerCost({ period, label: 'Consumer Cost', statistic }),
       }
     })
   }
 
-  metricConsumerBatchSize({ period = Duration.minutes(1), label = 'Batch Size', statistic = Statistic.Average }: { period?: Duration, label?: string, statistic?: Statistic } = {}): IMetric {
+  metricConsumerMessagesReceived({ period = Duration.minutes(1), label = 'Messages Received', statistic = Statistic.Average }: { period?: Duration, label?: string, statistic?: Statistic } = {}): IMetric {
     return new Metric({
       label: [Fqn(this, { allowedSpecialCharacters: '-' }), label].join(' '),
       namespace: this.consumer.metricsNamespace,
@@ -246,3 +253,4 @@ export class SqsTest extends Construct {
   }
 
 }
+
