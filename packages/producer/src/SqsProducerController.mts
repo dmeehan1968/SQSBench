@@ -50,19 +50,7 @@ export class SqsProducerController {
 
       this.logger.appendKeys({ state })
 
-      const commencedAt = state.rateChangeAt.getTime() - (settings.rateDurationInMinutes * 60 * 1000)
-      const elapsedMins = (startTime.getTime() - commencedAt) / 1000 / 60
-
-      const isIdlePhase = elapsedMins >= (settings.rateDurationInMinutes * settings.dutyCycle) || state.rate === 0
-
-      this.logger.appendKeys({
-        elapsedMins,
-        rateDurationInMinutes: settings.rateDurationInMinutes,
-        dutyCycle: settings.dutyCycle,
-        isIdlePhase,
-      })
-
-      if (isIdlePhase) {
+      if (this.isIdlePhase(state, settings, startTime)) {
         return
       }
 
@@ -72,6 +60,25 @@ export class SqsProducerController {
       this.logger.info('Done')
     }
 
+  }
+
+  private isIdlePhase(
+    state: Required<ProducerState>,
+    settings: SqsProducerControllerSettings,
+    startTime: Date
+  ) {
+    const commencedAt = state.rateChangeAt.getTime() - (settings.rateDurationInMinutes * 60 * 1000)
+    const elapsedMins = (startTime.getTime() - commencedAt) / 1000 / 60
+
+    const isIdlePhase = elapsedMins >= (settings.rateDurationInMinutes * settings.dutyCycle) || state.rate === 0
+
+    this.logger.appendKeys({
+      elapsedMins,
+      rateDurationInMinutes: settings.rateDurationInMinutes,
+      dutyCycle: settings.dutyCycle,
+      isIdlePhase,
+    })
+    return isIdlePhase
   }
 
   private async sendMessages(
