@@ -10,7 +10,7 @@ import { Queue } from "./Queue.mjs"
 import { Timer } from "./Timer.mjs"
 import { clamp } from "@sqsbench/helpers"
 import { Batch } from "./Batch.mjs"
-import pLimit from "p-limit"
+import pLimit from "p-limit-esm"
 
 export class SqsPollerController {
   constructor(

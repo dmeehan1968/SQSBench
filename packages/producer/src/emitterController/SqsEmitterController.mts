@@ -3,9 +3,9 @@ import { Logger } from "@aws-lambda-powertools/logger"
 import middy from "@middy/core"
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware"
 import { Context } from "aws-lambda"
-import pLimit from "p-limit"
-import { chunkArray, clamp } from "@sqsbench/helpers"
-import { SqsEmitterSettingsSchema} from "@sqsbench/schema"
+import pLimit from "p-limit-esm"
+import { chunkArray, clamp } from "packages/helpers/src/index.mjs"
+import { SqsEmitterSettingsSchema} from "packages/schema/src/index.mjs"
 
 export class SqsEmitterController {
 
@@ -24,7 +24,7 @@ export class SqsEmitterController {
 
     this.logger.info('Event', { event: unknown })
 
-    const { queueUrl, delays, startTime } = SqsEmitterSettingsSchema.parse(unknown)
+    const { queueUrl, delays, currentTime } = SqsEmitterSettingsSchema.parse(unknown)
 
     const latencies: number[] = []
     const limit = pLimit(50)
@@ -34,7 +34,7 @@ export class SqsEmitterController {
         return this.sqs.send(new SendMessageBatchCommand({
           QueueUrl: queueUrl,
           Entries: chunk.map((delay, index) => {
-            const timeToSend = startTime.getTime() + (delay * 1000)
+            const timeToSend = currentTime.getTime() + (delay * 1000)
             const latencyMs = Date.now() - timeToSend
             latencies.push(latencyMs)
             const DelaySeconds = clamp(Math.floor((timeToSend - Date.now()) / 1000), { max: 900 })

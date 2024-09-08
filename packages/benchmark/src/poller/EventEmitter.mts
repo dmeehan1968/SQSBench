@@ -1,4 +1,4 @@
-import pLimit from "p-limit"
+import pLimit from "p-limit-esm"
 import { Logger } from "@aws-lambda-powertools/logger"
 
 type Subscriber<T> = (payload: T) => void | Promise<void>

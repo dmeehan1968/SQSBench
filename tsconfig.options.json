@@ -32,6 +32,7 @@
     "baseUrl": ".",
     "resolveJsonModule": true,
     "moduleResolution": "NodeNext",
+    "allowJs": true,
 
     "typeRoots": [
       "./node_modules/@types"

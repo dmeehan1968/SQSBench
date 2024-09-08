@@ -1,5 +1,5 @@
 import { Logger } from "@aws-lambda-powertools/logger"
-import { SqsEmitterController } from "./SqsEmitterController.mjs"
+import { SqsEmitterController } from "./emitterController/SqsEmitterController.mjs"
 import { SQSClient } from "@aws-sdk/client-sqs"
 
 const sqs = new SQSClient()

@@ -1,7 +1,7 @@
 import { MetricResolution, Metrics, MetricUnit } from "@aws-lambda-powertools/metrics"
 import middy from "@middy/core"
 import { logMetrics } from "@aws-lambda-powertools/metrics/middleware"
-import pLimit from "p-limit"
+import pLimit from "p-limit-esm"
 import { parser } from "@aws-lambda-powertools/parser/middleware"
 import errorLogger from "@middy/error-logger"
 import { SqsRecordWithPayloadSchema } from "@sqsbench/schema"
