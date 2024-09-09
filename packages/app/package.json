@@ -1,8 +1,14 @@
 {
   "name": "@sqsbench/app",
   "version": "0.0.1",
-  "main": "lib/index.mts",
   "type": "module",
+  "files": [
+    "./src"
+  ],
+  "exports": {
+    ".": "./src/index.mts",
+    "./*": "./src/*.mts"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -2,7 +2,6 @@
   "name": "sqsbench",
   "version": "0.0.1",
   "description": "Benchmarking for AWS SQS Polling Behaviours",
-  "main": "lib/app/index.ts",
   "type": "module",
   "scripts": {
     "test": "jest",
