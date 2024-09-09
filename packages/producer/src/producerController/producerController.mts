@@ -19,36 +19,32 @@ interface ProducerControllerProps {
 
 export async function producerController({ event, logger, lambda, ssm }: ProducerControllerProps) {
 
-  try {
+  await using flushOnExit = { [Symbol.asyncDispose]: async () => logger.info('Done') }
 
-    logger.appendKeys({ lambdaEvent: event })
+  logger.appendKeys({ lambdaEvent: event })
 
-    const settings = getSettingsFromEvent(event)
-    const currentTime = getCurrentTime()
-    const state = await getState({ ...settings, logger, ssm, currentTime })
+  const settings = getSettingsFromEvent(event)
+  const currentTime = getCurrentTime()
+  const state = await getState({ ...settings, logger, ssm, currentTime })
 
-    logger.appendKeys({ state })
+  logger.appendKeys({ state })
 
-    if (isIdlePhase({ ...state, ...settings, currentTime, logger })) {
-      return
-    }
-
-    await produceMessages({
-      ...state,
-      ...settings,
-      emit: (queueUrl, delays) => invokeEmitter({
-        delays,
-        queueUrl,
-        emitterArn: settings.emitterArn,
-        currentTime,
-        lambda,
-      }),
-      logger,
-    })
-
-  } finally {
-    logger.info('Done')
+  if (isIdlePhase({ ...state, ...settings, currentTime, logger })) {
+    return
   }
+
+  await produceMessages({
+    ...state,
+    ...settings,
+    emit: (queueUrl, delays) => invokeEmitter({
+      delays,
+      queueUrl,
+      emitterArn: settings.emitterArn,
+      currentTime,
+      lambda,
+    }),
+    logger,
+  })
 
 }
 
