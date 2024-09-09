@@ -1,6 +1,7 @@
 import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm"
 import { Logger } from "@aws-lambda-powertools/logger"
 import { ProducerState, ProducerStateSchema } from "./producerStateSchema.mjs"
+import { JsonSchema } from "@sqsbench/schema"
 
 interface StateFromParameterProps {
   parameterName: string
