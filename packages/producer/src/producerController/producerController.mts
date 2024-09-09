@@ -19,6 +19,7 @@ interface ProducerControllerProps {
 
 export async function producerController({ event, logger, lambda, ssm }: ProducerControllerProps) {
 
+  // noinspection JSUnusedLocalSymbols
   await using flushOnExit = { [Symbol.asyncDispose]: async () => logger.info('Done') }
 
   logger.appendKeys({ lambdaEvent: event })
