@@ -3,11 +3,11 @@ import { LambdaClient } from "@aws-sdk/client-lambda"
 import { SSMClient } from "@aws-sdk/client-ssm"
 import { Context } from "aws-lambda"
 import { isIdlePhase } from "./isIdlePhase.mjs"
-import { produceMessages } from "./produceMessages.mjs"
 import { getCurrentTime } from "./getCurrentTime.mjs"
 import { getState } from "./getState.mjs"
-import { invokeEmitter } from "./invokeEmitter.mjs"
 import { getSettingsFromEvent } from "./getSettingsFromEvent.mjs"
+import { weightedMessageDistribution } from "../weightedMessageDistribution.mjs"
+import { sendMessages } from "./sendMessages.mjs"
 
 interface ProducerControllerProps {
   event: unknown
@@ -20,7 +20,7 @@ interface ProducerControllerProps {
 export async function producerController({ event, logger, lambda, ssm }: ProducerControllerProps) {
 
   // noinspection JSUnusedLocalSymbols
-  await using flushOnExit = { [Symbol.asyncDispose]: async () => logger.info('Done') }
+    await using flushOnExit = { [Symbol.asyncDispose]: async () => logger.info('Done') }
 
   logger.appendKeys({ lambdaEvent: event })
 
@@ -34,16 +34,17 @@ export async function producerController({ event, logger, lambda, ssm }: Produce
     return
   }
 
-  await produceMessages({
-    ...state,
-    ...settings,
-    emit: (queueUrl, delays) => invokeEmitter({
-      delays,
-      queueUrl,
-      emitterArn: settings.emitterArn,
-      currentTime,
-      lambda,
-    }),
+  // Generate random delays for each message
+  const delays = weightedMessageDistribution(state.rate, 60, settings.weightDistribution)
+
+  logger.appendKeys({ delays })
+
+  await sendMessages({
+    currentTime,
+    delays,
+    queueUrls: settings.queueUrls,
+    emitterArn: settings.emitterArn,
+    lambda,
     logger,
   })
 
