@@ -1,26 +1,39 @@
-import { isIdlePhase, IdlePhaseLogger } from "./isIdlePhase.mjs"
-import { EmitterErrorLogger, EmitterSuccessLogger, sendMessages } from "./sendMessages.mjs"
-import { Emitter, DelaysLogger, producerController, ProducerControllerProps } from "./producerController.mjs"
-import { weightedMessageDistribution } from "../weightedMessageDistribution.mjs"
+import {  IdlePhaseLogger, IdlePhaseCondition } from "./isIdlePhase.mjs"
+import { EmitterErrorLogger, EmitterSuccessLogger, SendMessages } from "./sendMessages.mjs"
+import {
+  MessageEmitter,
+  DelaysLogger,
+  producerController,
+  ProducerControllerParams,
+  ProducerControllerDependencies,
+} from "./producerController.mjs"
+import { WeightedMessageDistribution } from "../weightedMessageDistribution.mjs"
 import { mockFn } from "jest-mock-extended"
-
-jest.mock('./isIdlePhase.mjs')
-jest.mock('./sendMessages.mjs')
-jest.mock('../weightedMessageDistribution.mjs')
 
 describe('producerController', () => {
 
-  const mockIsIdlePhase = jest.mocked(isIdlePhase)
-  const mockSendMessages = jest.mocked(sendMessages)
-  const mockWeightedMessageDistribution = jest.mocked(weightedMessageDistribution)
+  const mockIsIdlePhase = mockFn<IdlePhaseCondition>()
+  const mockSendMessages = mockFn<SendMessages>()
+  const mockWeightedMessageDistribution = mockFn<WeightedMessageDistribution>()
 
   const mockLogDelays = mockFn<DelaysLogger>()
   const mockLogEmitterSuccesses = mockFn<EmitterSuccessLogger>()
   const mockLogEmitterErrors = mockFn<EmitterErrorLogger>()
   const mockLogIdlePhaseStats = mockFn<IdlePhaseLogger>()
-  const mockEmitter = mockFn<Emitter>()
+  const mockEmitter = mockFn<MessageEmitter>()
 
-  let fixture: ProducerControllerProps
+  const dependencies: ProducerControllerDependencies = {
+    logDelays: mockLogDelays,
+    logEmitterSuccesses: mockLogEmitterSuccesses,
+    logEmitterErrors: mockLogEmitterErrors,
+    logIdlePhaseStats: mockLogIdlePhaseStats,
+    emitter: mockEmitter,
+    isIdlePhase: mockIsIdlePhase,
+    weightedMessageDistribution: mockWeightedMessageDistribution,
+    sendMessages: mockSendMessages,
+  }
+
+  let params: ProducerControllerParams
   let rateChangeAt: Date
   let currentTime: Date
 
@@ -30,8 +43,8 @@ describe('producerController', () => {
     currentTime = new Date()
     currentTime.setMinutes(currentTime.getMinutes() + 1, 0, 0)
 
-    // the values for the fixture don't matter, just the structure
-    fixture = {
+    // the values for the params don't matter, just the structure
+    params = {
       settings: {
         minRate: 1,
         maxRate: 16,
@@ -48,11 +61,6 @@ describe('producerController', () => {
         rateChangeAt
       },
       currentTime,
-      logDelays: mockLogDelays,
-      logEmitterSuccesses: mockLogEmitterSuccesses,
-      logEmitterErrors: mockLogEmitterErrors,
-      logIdlePhaseStats: mockLogIdlePhaseStats,
-      emitter: mockEmitter,
     }
   })
 
@@ -65,15 +73,15 @@ describe('producerController', () => {
     mockIsIdlePhase.mockReturnValue(true)
 
     // Act
-    await producerController(fixture)
+    await producerController(params, dependencies)
 
     // Assert
     expect(mockIsIdlePhase).toHaveBeenCalledWith({
-      rate: fixture.state.rate,
-      rateChangeAt: fixture.state.rateChangeAt,
-      ...fixture.settings,
-      currentTime: fixture.currentTime,
-      logIdlePhaseStats: fixture.logIdlePhaseStats,
+      rate: params.state.rate,
+      rateChangeAt: params.state.rateChangeAt,
+      ...params.settings,
+      currentTime: params.currentTime,
+      logIdlePhaseStats: dependencies.logIdlePhaseStats,
     })
     expect(mockWeightedMessageDistribution).not.toHaveBeenCalled()
     expect(mockSendMessages).not.toHaveBeenCalled()
@@ -86,27 +94,27 @@ describe('producerController', () => {
     mockWeightedMessageDistribution.mockReturnValue([1, 2 ,3])
 
     // Act
-    await producerController(fixture)
+    await producerController(params, dependencies)
 
     // Assert
     expect(mockIsIdlePhase).toHaveBeenCalled()
     expect(mockIsIdlePhase).toHaveBeenCalledWith({
-      rate: fixture.state.rate,
-      rateChangeAt: fixture.state.rateChangeAt,
-      ...fixture.settings,
-      currentTime: fixture.currentTime,
+      rate: params.state.rate,
+      rateChangeAt: params.state.rateChangeAt,
+      ...params.settings,
+      currentTime: params.currentTime,
       logIdlePhaseStats: mockLogIdlePhaseStats,
     })
     expect(mockWeightedMessageDistribution).toHaveBeenCalledWith(
-      fixture.state.rate,
+      params.state.rate,
       60,
-      fixture.settings.weightDistribution
+      params.settings.weightDistribution
     )
     expect(mockLogDelays).toHaveBeenCalledWith([1, 2, 3])
     expect(mockSendMessages).toHaveBeenCalledWith({
-      currentTime: fixture.currentTime,
+      currentTime: params.currentTime,
       delays: [1, 2, 3],
-      queueUrls: fixture.settings.queueUrls,
+      queueUrls: params.settings.queueUrls,
       emitter: mockEmitter,
       logEmitterSuccesses: mockLogEmitterSuccesses,
       logEmitterErrors: mockLogEmitterErrors,

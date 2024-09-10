@@ -11,6 +11,10 @@ interface IdlePhaseProps {
   logIdlePhaseStats: IdlePhaseLogger
 }
 
+export interface IdlePhaseCondition {
+  (props: IdlePhaseProps): boolean
+}
+
 /**
  * Check if the producer is in an idle phase
  *
@@ -26,14 +30,14 @@ interface IdlePhaseProps {
  * @param {number} currentTime The time when the producer should start producing messages in this phase
  * @param {IdlePhaseLogger} logIdlePhaseStats A logger to log the stats of the idle phase
  */
-export function isIdlePhase({
-                              rate,
-                              rateChangeAt,
-                              rateDurationInMinutes,
-                              dutyCycle,
-                              currentTime,
-                              logIdlePhaseStats,
-                            }: IdlePhaseProps) {
+export const isIdlePhase: IdlePhaseCondition = ({
+  rate,
+  rateChangeAt,
+  rateDurationInMinutes,
+  dutyCycle,
+  currentTime,
+  logIdlePhaseStats,
+}: IdlePhaseProps) => {
   const commencedAt = rateChangeAt.getTime() - (rateDurationInMinutes * 60 * 1000)
   const elapsedMinutes = Math.floor((currentTime.getTime() - commencedAt) / 1000 / 60)
 

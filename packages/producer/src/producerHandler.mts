@@ -5,12 +5,14 @@ import middy from "@middy/core"
 import errorLogger from "@middy/error-logger"
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware"
 import {
-  Emitter,
+  MessageEmitter,
   getCurrentTime,
   getSettingsFromEvent,
   getState, invokeEmitter,
-  producerController,
+  producerController, sendMessages,
 } from "./producerController/index.mjs"
+import { isIdlePhase } from "./producerController/isIdlePhase.mjs"
+import { weightedMessageDistribution } from "./weightedMessageDistribution.mjs"
 
 const logger = new Logger()
 const ssm = new SSMClient()
@@ -25,18 +27,22 @@ async function _handler(event: unknown) {
   const currentTime = getCurrentTime()
   const state = await getState({ ...settings, logger, ssm, currentTime })
   logger.appendKeys({ state })
-  const emitter: Emitter = async (delays: number[], queueUrl: string, currentTime: Date) => {
+  const emitter: MessageEmitter = async (delays: number[], queueUrl: string, currentTime: Date) => {
     return invokeEmitter({ delays, queueUrl, emitterArn: settings.emitterArn, currentTime, lambda })
   }
   await producerController({
     settings,
     currentTime,
     state,
+  }, {
     logDelays: delays => logger.appendKeys({ delays }),
     logEmitterSuccesses: emitterInvocations => logger.appendKeys({ emitterInvocations }),
     logEmitterErrors: emitterRejections => logger.appendKeys({ emitterRejections }),
     logIdlePhaseStats: idlePhaseStats => logger.appendKeys({ idlePhaseStats }),
-    emitter
+    emitter,
+    isIdlePhase: isIdlePhase,
+    weightedMessageDistribution: weightedMessageDistribution,
+    sendMessages: sendMessages,
   })
 }
 

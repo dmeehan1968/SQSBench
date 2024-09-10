@@ -1,6 +1,6 @@
 import { chunkArray, splitSettledResults } from "@sqsbench/helpers"
 import pLimit from "p-limit-esm"
-import { Emitter } from "./producerController.mjs"
+import { MessageEmitter } from "./producerController.mjs"
 
 export interface EmitterSuccessLogger {
   (results: any[]): void
@@ -14,12 +14,23 @@ interface SendMessagesProps {
   currentTime: Date,
   delays: number[],
   queueUrls: string[],
-  emitter: Emitter
+  emitter: MessageEmitter
   logEmitterSuccesses: EmitterSuccessLogger
   logEmitterErrors: EmitterErrorLogger
 }
 
-export async function sendMessages({ currentTime, delays, queueUrls, emitter, logEmitterSuccesses, logEmitterErrors }: SendMessagesProps) {
+export interface SendMessages {
+  (props: SendMessagesProps): Promise<void>
+}
+
+export const sendMessages: SendMessages = async ({
+  currentTime,
+  delays,
+  queueUrls,
+  emitter,
+  logEmitterSuccesses,
+  logEmitterErrors,
+}: SendMessagesProps) => {
   // limit to 50 concurrent invocations (the lambda client connection limit)
   const limit = pLimit(50)
 

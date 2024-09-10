@@ -1,8 +1,12 @@
-export function weightedMessageDistribution(
+export interface WeightedMessageDistribution {
+  (messageCount: number, duration: number, weights?: number[]): number[]
+}
+
+export const weightedMessageDistribution: WeightedMessageDistribution = (
   messageCount: number,
   duration: number,
   weights: number[] = [1],
-): number[] {
+): number[] => {
 
   if (messageCount <= 0 || !Number.isInteger(messageCount)) {
     throw new Error('Message count must be an integer greater than 0')

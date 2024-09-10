@@ -1,10 +1,10 @@
-import { isIdlePhase, IdlePhaseLogger } from "./isIdlePhase.mjs"
-import { weightedMessageDistribution } from "../weightedMessageDistribution.mjs"
-import { EmitterErrorLogger, EmitterSuccessLogger, sendMessages } from "./sendMessages.mjs"
+import { IdlePhaseLogger, IdlePhaseCondition } from "./isIdlePhase.mjs"
+import { WeightedMessageDistribution } from "../weightedMessageDistribution.mjs"
+import { EmitterErrorLogger, EmitterSuccessLogger, SendMessages } from "./sendMessages.mjs"
 import { SqsProducerControllerSettings } from "@sqsbench/schema"
 import { ProducerState } from "./producerStateSchema.mjs"
 
-export interface Emitter {
+export interface MessageEmitter {
   (delays: number[], queueUrl: string, currentTime: Date): Promise<any>
 }
 
@@ -12,18 +12,37 @@ export interface DelaysLogger {
   (delays: number[]): void
 }
 
-export interface ProducerControllerProps {
+export interface ProducerControllerParams {
   settings: SqsProducerControllerSettings
   state: Required<ProducerState>
   currentTime: Date
-  emitter: Emitter
+}
+
+export interface ProducerControllerDependencies {
+  emitter: MessageEmitter
   logDelays: DelaysLogger
   logEmitterSuccesses: EmitterSuccessLogger
   logEmitterErrors: EmitterErrorLogger
   logIdlePhaseStats: IdlePhaseLogger
+  isIdlePhase: IdlePhaseCondition
+  weightedMessageDistribution: WeightedMessageDistribution
+  sendMessages: SendMessages
 }
 
-export async function producerController({ settings, state, currentTime, logDelays, logEmitterSuccesses, logEmitterErrors, logIdlePhaseStats, emitter }: ProducerControllerProps) {
+export async function producerController({
+  settings,
+  state,
+  currentTime,
+}: ProducerControllerParams, {
+  logDelays,
+  logEmitterSuccesses,
+  logEmitterErrors,
+  logIdlePhaseStats,
+  emitter,
+  isIdlePhase,
+  weightedMessageDistribution,
+  sendMessages,
+}: ProducerControllerDependencies) {
 
   if (isIdlePhase({ ...state, ...settings, currentTime, logIdlePhaseStats })) {
     return
@@ -41,7 +60,7 @@ export async function producerController({ settings, state, currentTime, logDela
     queueUrls: settings.queueUrls,
     emitter,
     logEmitterSuccesses,
-    logEmitterErrors
+    logEmitterErrors,
   })
 
 }
