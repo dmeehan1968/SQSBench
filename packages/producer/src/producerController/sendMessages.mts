@@ -1,19 +1,17 @@
 import { Logger } from "@aws-lambda-powertools/logger"
-import { LambdaClient } from "@aws-sdk/client-lambda"
 import { chunkArray, splitSettledResults } from "@sqsbench/helpers"
-import { invokeEmitter } from "./invokeEmitter.mjs"
 import pLimit from "p-limit-esm"
+import { Emitter } from "./producerController.mjs"
 
 interface SendMessagesProps {
   currentTime: Date,
   delays: number[],
   queueUrls: string[],
-  emitterArn: string,
-  lambda: LambdaClient,
+  emitter: Emitter
   logger: Logger
 }
 
-export async function sendMessages({ currentTime, delays, queueUrls, emitterArn, lambda, logger }: SendMessagesProps) {
+export async function sendMessages({ currentTime, delays, queueUrls, emitter, logger }: SendMessagesProps) {
   // limit to 50 concurrent invocations (the lambda client connection limit)
   const limit = pLimit(50)
 
@@ -21,13 +19,7 @@ export async function sendMessages({ currentTime, delays, queueUrls, emitterArn,
   const pending = chunkArray(delays, 500)
     .flatMap(chunk =>
       queueUrls.map(queueUrl =>
-        limit(() => invokeEmitter({
-          delays: chunk,
-          queueUrl,
-          emitterArn,
-          currentTime,
-          lambda,
-        })),
+        limit(() => emitter(chunk, queueUrl, currentTime)),
       ),
     )
 
