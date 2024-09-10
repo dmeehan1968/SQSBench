@@ -11,7 +11,6 @@ import { sendMessages } from "./sendMessages.mjs"
 
 interface ProducerControllerProps {
   event: unknown
-  context: Context
   logger: Logger
   ssm: SSMClient
   lambda: LambdaClient

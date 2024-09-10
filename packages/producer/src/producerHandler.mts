@@ -13,5 +13,5 @@ const lambda = new LambdaClient()
 export const handler = middy()
   .use(errorLogger({ logger: error => logger.error('Error', { error }) }))
   .use(injectLambdaContext(logger, { resetKeys: true }))
-  .handler((event, context) => producerController({ event, context, logger, ssm, lambda }))
+  .handler(event => producerController({ event, logger, ssm, lambda }))
 
