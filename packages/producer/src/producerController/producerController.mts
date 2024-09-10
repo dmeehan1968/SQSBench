@@ -9,7 +9,7 @@ export interface Emitter {
   (delays: number[], queueUrl: string, currentTime: Date): Promise<any>
 }
 
-interface ProducerControllerProps {
+export interface ProducerControllerProps {
   settings: SqsProducerControllerSettings
   state: Required<ProducerState>
   currentTime: Date
