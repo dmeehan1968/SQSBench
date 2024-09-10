@@ -1,17 +1,25 @@
-import { Logger } from "@aws-lambda-powertools/logger"
 import { chunkArray, splitSettledResults } from "@sqsbench/helpers"
 import pLimit from "p-limit-esm"
 import { Emitter } from "./producerController.mjs"
+
+export interface EmitterSuccessLogger {
+  (results: any[]): void
+}
+
+export interface EmitterErrorLogger {
+  (errors: Error[]): void
+}
 
 interface SendMessagesProps {
   currentTime: Date,
   delays: number[],
   queueUrls: string[],
   emitter: Emitter
-  logger: Logger
+  logEmitterSuccesses: EmitterSuccessLogger
+  logEmitterErrors: EmitterErrorLogger
 }
 
-export async function sendMessages({ currentTime, delays, queueUrls, emitter, logger }: SendMessagesProps) {
+export async function sendMessages({ currentTime, delays, queueUrls, emitter, logEmitterSuccesses, logEmitterErrors }: SendMessagesProps) {
   // limit to 50 concurrent invocations (the lambda client connection limit)
   const limit = pLimit(50)
 
@@ -24,11 +32,10 @@ export async function sendMessages({ currentTime, delays, queueUrls, emitter, lo
     )
 
   const { fulfilled, rejected } = splitSettledResults(await Promise.allSettled(pending))
-  logger.appendKeys({
-    emitterInvocations: fulfilled,
-  })
+
+  logEmitterSuccesses(fulfilled)
 
   if (rejected.length > 0) {
-    logger.error('Rejected emitter invocations', { rejected })
+    logEmitterErrors(rejected)
   }
 }

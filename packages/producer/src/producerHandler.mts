@@ -29,7 +29,14 @@ async function _handler(event: unknown) {
     return invokeEmitter({ delays, queueUrl, emitterArn: settings.emitterArn, currentTime, lambda })
   }
   await producerController({
-    settings, currentTime, state, logger, emitter
+    settings,
+    currentTime,
+    state,
+    logDelays: delays => logger.appendKeys({ delays }),
+    logEmitterSuccesses: emitterInvocations => logger.appendKeys({ emitterInvocations }),
+    logEmitterErrors: emitterRejections => logger.appendKeys({ emitterRejections }),
+    logIdlePhaseStats: idlePhaseStats => logger.appendKeys({ idlePhaseStats }),
+    emitter
   })
 }
 

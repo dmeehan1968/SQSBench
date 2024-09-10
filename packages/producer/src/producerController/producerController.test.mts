@@ -1,9 +1,8 @@
-import { isIdlePhase } from "./isIdlePhase.mjs"
-import { sendMessages } from "./sendMessages.mjs"
-import { Emitter, producerController, ProducerControllerProps } from "./producerController.mjs"
+import { isIdlePhase, IdlePhaseLogger } from "./isIdlePhase.mjs"
+import { EmitterErrorLogger, EmitterSuccessLogger, sendMessages } from "./sendMessages.mjs"
+import { Emitter, DelaysLogger, producerController, ProducerControllerProps } from "./producerController.mjs"
 import { weightedMessageDistribution } from "../weightedMessageDistribution.mjs"
-import { mock } from "jest-mock-extended"
-import { Logger } from "@aws-lambda-powertools/logger"
+import { mockFn } from "jest-mock-extended"
 
 jest.mock('./isIdlePhase.mjs')
 jest.mock('./sendMessages.mjs')
@@ -11,8 +10,11 @@ jest.mock('../weightedMessageDistribution.mjs')
 
 describe('producerController', () => {
 
-  const mockLogger = mock<Logger>()
-  const mockEmitter = mock<Emitter>()
+  const mockLogDelays = mockFn<DelaysLogger>()
+  const mockLogEmitterSuccesses = mockFn<EmitterSuccessLogger>()
+  const mockLogEmitterErrors = mockFn<EmitterErrorLogger>()
+  const mockLogIdlePhaseStats = mockFn<IdlePhaseLogger>()
+  const mockEmitter = mockFn<Emitter>()
 
   let fixture: ProducerControllerProps
   let rateChangeAt: Date
@@ -24,6 +26,7 @@ describe('producerController', () => {
     currentTime = new Date()
     currentTime.setMinutes(currentTime.getMinutes() + 1, 0, 0)
 
+    // the values for the fixture don't matter, just the structure
     fixture = {
       settings: {
         minRate: 1,
@@ -41,7 +44,10 @@ describe('producerController', () => {
         rateChangeAt
       },
       currentTime,
-      logger: mockLogger,
+      logDelays: mockLogDelays,
+      logEmitterSuccesses: mockLogEmitterSuccesses,
+      logEmitterErrors: mockLogEmitterErrors,
+      logIdlePhaseStats: mockLogIdlePhaseStats,
       emitter: mockEmitter,
     }
   })
@@ -67,7 +73,7 @@ describe('producerController', () => {
       rateChangeAt: fixture.state.rateChangeAt,
       ...fixture.settings,
       currentTime: fixture.currentTime,
-      logger: fixture.logger
+      logIdlePhaseStats: fixture.logIdlePhaseStats,
     })
     expect(mockWeightedMessageDistribution).not.toHaveBeenCalled()
     expect(mockSendMessages).not.toHaveBeenCalled()
@@ -92,22 +98,21 @@ describe('producerController', () => {
       rateChangeAt: fixture.state.rateChangeAt,
       ...fixture.settings,
       currentTime: fixture.currentTime,
-      logger: fixture.logger
+      logIdlePhaseStats: mockLogIdlePhaseStats,
     })
     expect(mockWeightedMessageDistribution).toHaveBeenCalledWith(
       fixture.state.rate,
       60,
       fixture.settings.weightDistribution
     )
-    expect(mockLogger.appendKeys).toHaveBeenCalledWith({
-      delays: [1, 2, 3]
-    })
+    expect(mockLogDelays).toHaveBeenCalledWith([1, 2, 3])
     expect(mockSendMessages).toHaveBeenCalledWith({
       currentTime: fixture.currentTime,
       delays: [1, 2, 3],
       queueUrls: fixture.settings.queueUrls,
       emitter: mockEmitter,
-      logger: fixture.logger
+      logEmitterSuccesses: mockLogEmitterSuccesses,
+      logEmitterErrors: mockLogEmitterErrors,
     })
   })
 })

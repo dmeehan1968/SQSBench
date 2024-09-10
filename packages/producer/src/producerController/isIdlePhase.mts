@@ -1,4 +1,6 @@
-import { Logger } from "@aws-lambda-powertools/logger"
+export interface IdlePhaseLogger {
+  (stats: { isIdlePhase: boolean, elapsedMinutes: number, rateDurationInMinutes: number, dutyCycle: number }): void
+}
 
 interface IdlePhaseProps {
   rate: number
@@ -6,7 +8,7 @@ interface IdlePhaseProps {
   rateDurationInMinutes: number
   dutyCycle: number
   currentTime: Date
-  logger: Logger
+  logIdlePhaseStats: IdlePhaseLogger
 }
 
 /**
@@ -22,7 +24,7 @@ interface IdlePhaseProps {
  * @param {number} rateDurationInMinutes How long the rate should be maintained
  * @param {number} dutyCycle The proportion of the rateDurationInMinutes that messages should be produced
  * @param {number} currentTime The time when the producer should start producing messages in this phase
- * @param {Logger} logger The logger to use
+ * @param {IdlePhaseLogger} logIdlePhaseStats A logger to log the stats of the idle phase
  */
 export function isIdlePhase({
                               rate,
@@ -30,14 +32,14 @@ export function isIdlePhase({
                               rateDurationInMinutes,
                               dutyCycle,
                               currentTime,
-                              logger,
+                              logIdlePhaseStats,
                             }: IdlePhaseProps) {
   const commencedAt = rateChangeAt.getTime() - (rateDurationInMinutes * 60 * 1000)
   const elapsedMinutes = Math.floor((currentTime.getTime() - commencedAt) / 1000 / 60)
 
   const isIdlePhase = elapsedMinutes >= (rateDurationInMinutes * dutyCycle) || rate === 0
 
-  logger.appendKeys({ isIdlePhase, elapsedMinutes, rateDurationInMinutes, dutyCycle })
+  logIdlePhaseStats({ isIdlePhase, elapsedMinutes, rateDurationInMinutes, dutyCycle })
 
   return isIdlePhase
 }

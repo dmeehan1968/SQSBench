@@ -1,13 +1,8 @@
-import { Logger } from "@aws-lambda-powertools/logger"
-import { mock } from 'jest-mock-extended'
-import { isIdlePhase } from "./isIdlePhase.mjs"
+import { mockFn } from 'jest-mock-extended'
+import { isIdlePhase, IdlePhaseLogger } from "./isIdlePhase.mjs"
 
 describe("isIdlePhase", () => {
-  let logger: Logger
-
-  beforeEach(() => {
-    logger = mock<Logger>()
-  })
+  let mockLogIdlePhaseStats = mockFn<IdlePhaseLogger>()
 
   it.each([
     { rate: 0, elapsedMinutes: 0, rateDurationInMinutes: 60, dutyCycle: 0.5, expected: true },
@@ -36,12 +31,12 @@ describe("isIdlePhase", () => {
         rate,
         rateDurationInMinutes,
         dutyCycle,
-        logger,
+        logIdlePhaseStats: mockLogIdlePhaseStats,
       })
 
       // Assert
       expect(result).toBe(expected)
-      expect(logger.appendKeys).toHaveBeenCalledWith({
+      expect(mockLogIdlePhaseStats).toHaveBeenCalledWith({
         isIdlePhase: expected,
         elapsedMinutes,
         rateDurationInMinutes,
