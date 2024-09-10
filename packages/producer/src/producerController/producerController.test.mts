@@ -10,6 +10,10 @@ jest.mock('../weightedMessageDistribution.mjs')
 
 describe('producerController', () => {
 
+  const mockIsIdlePhase = jest.mocked(isIdlePhase)
+  const mockSendMessages = jest.mocked(sendMessages)
+  const mockWeightedMessageDistribution = jest.mocked(weightedMessageDistribution)
+
   const mockLogDelays = mockFn<DelaysLogger>()
   const mockLogEmitterSuccesses = mockFn<EmitterSuccessLogger>()
   const mockLogEmitterErrors = mockFn<EmitterErrorLogger>()
@@ -58,10 +62,6 @@ describe('producerController', () => {
 
   it('should not send messages when idle', async () => {
     // Arrange
-    const mockIsIdlePhase = jest.mocked(isIdlePhase)
-    const mockSendMessages = jest.mocked(sendMessages)
-    const mockWeightedMessageDistribution = jest.mocked(weightedMessageDistribution)
-
     mockIsIdlePhase.mockReturnValue(true)
 
     // Act
@@ -81,9 +81,6 @@ describe('producerController', () => {
 
   it('should generate and send messages when not idle', async () => {
     // Arrange
-    const mockIsIdlePhase = jest.mocked(isIdlePhase)
-    const mockSendMessages = jest.mocked(sendMessages)
-    const mockWeightedMessageDistribution = jest.mocked(weightedMessageDistribution)
 
     mockIsIdlePhase.mockReturnValue(false)
     mockWeightedMessageDistribution.mockReturnValue([1, 2 ,3])
