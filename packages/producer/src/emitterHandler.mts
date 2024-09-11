@@ -18,15 +18,17 @@ async function _handler(unknown: unknown) {
 
   const { queueUrl, ...settings } = SqsEmitterSettingsSchema.parse(unknown)
 
-  const sendMessageBatch: MessageBatchSender = async entries => {
-    return sqs.send(new SendMessageBatchCommand({
-      QueueUrl: queueUrl,
-      Entries: entries.map(entry => ({
-        Id: entry.id,
-        DelaySeconds: entry.delaySeconds,
-        MessageBody: entry.messageBody,
-      })),
-    }))
+  const queue: MessageBatchSender = {
+    async sendMessageBatch(messages) {
+      return sqs.send(new SendMessageBatchCommand({
+        QueueUrl: queueUrl,
+        Entries: messages.map((message, index) => ({
+          Id: index.toString(),
+          DelaySeconds: message.delay.toSeconds({ transform: Math.floor }),
+          MessageBody: JSON.stringify(message.body),
+        })),
+      }))
+    }
   }
 
   await emitterController({
@@ -34,7 +36,7 @@ async function _handler(unknown: unknown) {
     maxConcurrency: 50,
     batchSize: 10,
   }, {
-    sendMessageBatch,
+    queue,
     logMessageStats: stats => logger.info('Latencies (ms)', { latencies: stats }),
     logSendMessageError: error => logger.error('Batch Send Error', { error }),
   })

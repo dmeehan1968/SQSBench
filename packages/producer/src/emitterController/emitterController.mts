@@ -2,14 +2,37 @@ import { SqsEmitterSettings } from "@sqsbench/schema"
 import { chunkArray, clamp } from "@sqsbench/helpers"
 import pLimit from "p-limit-esm"
 
+class MessageDelay {
+
+  protected constructor(private readonly milliseconds: number) {
+    this.milliseconds = clamp(milliseconds, { min: 0, max: 15 * 60 * 1000 })
+  }
+
+  static seconds(seconds: number): MessageDelay {
+    return new MessageDelay(seconds * 1000)
+  }
+
+  static milliseconds(msecs: number): MessageDelay {
+    return new MessageDelay(msecs)
+  }
+
+  toSeconds({ integral = true, transform }: { integral?: boolean, transform?: (value: number) => number } = {}): number {
+    let seconds = this.milliseconds / 1000
+    seconds = transform ? transform(seconds) : seconds
+    if (integral && (Math.trunc(seconds) !== seconds)) {
+      throw new Error('Delay is not an integral number of seconds')
+    }
+    return seconds
+  }
+}
+
 export interface MessageEntry {
-  id: string
-  delaySeconds: number
-  messageBody: string
+  delay: MessageDelay
+  body: { index: number, delay: number }
 }
 
 export interface MessageBatchSender {
-  (entries: MessageEntry[]): Promise<any>
+  sendMessageBatch: (entries: MessageEntry[]) => Promise<any>
 }
 
 export interface MessageStatsLogger {
@@ -27,8 +50,8 @@ export interface EmitterControllerParams extends Pick<SqsEmitterSettings, 'delay
 
 export async function emitterController(
   { delays, currentTime, maxConcurrency, batchSize }: EmitterControllerParams,
-  { sendMessageBatch, logMessageStats, logSendMessageError }: {
-    sendMessageBatch: MessageBatchSender,
+  { queue, logMessageStats, logSendMessageError }: {
+    queue: MessageBatchSender,
     logMessageStats: MessageStatsLogger,
     logSendMessageError: SendMessageErrorLogger,
   },
@@ -42,16 +65,14 @@ export async function emitterController(
 
   const pending = chunkArray(delays, batchSize).map(chunk => {
     return limit(() => {
-      return sendMessageBatch(chunk.map((delay, index) => {
+      return queue.sendMessageBatch(chunk.map((delay, index) => {
         const timeToSend = new Date(currentTime)
         timeToSend.setSeconds(timeToSend.getSeconds() + delay)
         const latencyMs = Date.now() - timeToSend.getTime()
         latencies.push(latencyMs)
-        const DelaySeconds = clamp(Math.floor((timeToSend.getTime() - Date.now()) / 1000), { max: 900 })
         return {
-          id: index.toString(),
-          delaySeconds: DelaySeconds,
-          messageBody: JSON.stringify({ index, delay }),
+          delay: MessageDelay.milliseconds(timeToSend.getTime() - Date.now()),
+          body: { index, delay },
         }
       }))
     })
