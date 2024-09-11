@@ -40,9 +40,9 @@ async function _handler(event: unknown) {
     logEmitterErrors: emitterRejections => logger.appendKeys({ emitterRejections }),
     logIdlePhaseStats: idlePhaseStats => logger.appendKeys({ idlePhaseStats }),
     emitter,
-    isIdlePhase: isIdlePhase,
-    weightedMessageDistribution: weightedMessageDistribution,
-    sendMessages: sendMessages,
+    isIdlePhase,
+    weightedMessageDistribution,
+    sendMessages,
   })
 }
 

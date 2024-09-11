@@ -23,12 +23,13 @@ export interface IdlePhaseCondition {
  * - The producer has been running for at least rateDurationInMinutes * dutyCycle minutes
  * - Or the rate is 0
  *
- * @param {number} rate The number of messages to produce per minute
- * @param {Date} rateChangeAt When the rate should next change
- * @param {number} rateDurationInMinutes How long the rate should be maintained
- * @param {number} dutyCycle The proportion of the rateDurationInMinutes that messages should be produced
- * @param {number} currentTime The time when the producer should start producing messages in this phase
- * @param {IdlePhaseLogger} logIdlePhaseStats A logger to log the stats of the idle phase
+ * @param params The parameters for the idle phase
+ * @param {number} params.rate The number of messages to produce per minute
+ * @param {Date} params.rateChangeAt When the rate should next change
+ * @param {number} params.rateDurationInMinutes How long the rate should be maintained
+ * @param {number} params.dutyCycle The proportion of the rateDurationInMinutes that messages should be produced
+ * @param {number} params.currentTime The time when the producer should start producing messages in this phase
+ * @param {IdlePhaseLogger} params.logIdlePhaseStats A logger to log the stats of the idle phase
  */
 export const isIdlePhase: IdlePhaseCondition = ({
   rate,
