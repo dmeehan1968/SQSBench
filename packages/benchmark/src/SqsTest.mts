@@ -97,7 +97,7 @@ export class SqsTest extends Construct {
     this.highResMetricsEnabled = props.pollerType === PollerType.Pipe && props.batchWindow.toSeconds() === 0 && (props.highResMetrics ?? false)
 
     this.consumer = new NodejsFunction(this, 'Consumer', {
-      entry: import.meta.resolve('./consumer/index.mts').replace(/^file:\/\//, ''),
+      entry: import.meta.resolve('./consumer/handler.mts').replace(/^file:\/\//, ''),
       deadLetterQueue: this.queue.deadLetterQueue?.queue,
       bundling: { nodeModules: [ 'zod', '@middy/core' ]},
       memorySize: 128,

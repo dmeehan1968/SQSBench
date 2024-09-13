@@ -63,7 +63,7 @@ export async function emitterController(
   const latencies: number[] = []
   const limit = pLimit(maxConcurrency)
 
-  const pending = chunkArray(delays, batchSize).map(chunk => {
+  const pending = chunkArray(delays, batchSize).map((chunk, chunkIndex) => {
     return limit(() => {
       return queue.sendMessageBatch(chunk.map((delay, index) => {
         const timeToSend = new Date(currentTime)
@@ -72,7 +72,10 @@ export async function emitterController(
         latencies.push(latencyMs)
         return {
           delay: MessageDelay.milliseconds(timeToSend.getTime() - Date.now()),
-          body: { index, delay },
+          body: {
+            index: (chunkIndex * batchSize) + index,
+            delay
+          },
         }
       }))
     })
