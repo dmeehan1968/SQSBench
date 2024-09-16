@@ -102,7 +102,7 @@ export class SqsTest extends Construct {
       bundling: { nodeModules: [ 'zod', '@middy/core' ]},
       memorySize: 128,
       environment: {
-        PER_MESSAGE_DURATION: perMessageDuration.toMilliseconds().toString(),
+        PER_MESSAGE_DURATION: perMessageDuration.toIsoString(),
         HIGH_RES_METRICS: this.supportsHighRes && (props.pollerType === PollerType.Pipe && (props.highResMetrics ?? false)) ? 'true' : 'false',
       },
       timeout,

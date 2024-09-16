@@ -1,4 +1,4 @@
 export enum ConsumerEnvironment {
-  PerMessageDurationMs = 'PER_MESSAGE_DURATION_MS',
+  PerMessageDuration = 'PER_MESSAGE_DURATION',
   HighResMetrics = 'HIGH_RES_METRICS',
 }

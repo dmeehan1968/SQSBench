@@ -1,5 +1,8 @@
-import { Milliseconds } from "./milliseconds.mjs"
+import { Duration } from "@sqsbench/helpers/duration"
+import { RelativeTimeout } from "./relativeTimeout.mjs"
 
-export async function nodeRelativeTimeout<A extends any[], T>(duration: Milliseconds, done?: (...args: A) => T | PromiseLike<T>, ...args: A) {
-  return new Promise<T | void>(resolve => setTimeout(() => resolve(done?.(...args)), duration))
+export const nodeRelativeTimeout: RelativeTimeout = <A extends any[], T>(duration: Duration, done?: (...args: A) => T | PromiseLike<T>, ...args: A) => {
+  return new Promise<T | void>(resolve => setTimeout(() => resolve(done?.(...args)), duration.toMilliseconds()))
 }
+
+

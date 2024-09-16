@@ -7,15 +7,14 @@ import { SqsRecordWithPayloadSchema } from "@sqsbench/schema"
 import { batchItemFailures, sqsRecordNormalizer } from "@sqsbench/middleware"
 import { Logger } from "@aws-lambda-powertools/logger"
 import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware"
-import { Milliseconds } from "./milliseconds.mjs"
 import { AwsConsumerMetrics } from "./awsConsumerMetrics.mjs"
 import { controller } from "./controller.mjs"
 import { ConsumerEnvironment } from "./consumerEnvironment.mjs"
-import { AwsConsumerLogger } from "./awsConsumerLogger.mjs"
 import pLimit from "p-limit-esm"
 import { logOnExit } from "./logOnExit.mjs"
 import { nodeRelativeTimeout } from "./nodeRelativeTimeout.mjs"
 import { Environment } from "./environment.mjs"
+import { Duration } from "@sqsbench/helpers"
 
 const metrics = new Metrics()
 const logger = new Logger()
@@ -34,15 +33,17 @@ export const handler = middy()
       await using _ = logOnExit(logger)
 
     const env = new Environment<ConsumerEnvironment>(process.env)
-    const perMessageDuration = env.get(ConsumerEnvironment.PerMessageDurationMs).default(50).as(v => v as Milliseconds)
+    const perMessageDuration = env.get(ConsumerEnvironment.PerMessageDuration).required().as(v => Duration.parse(v))
+
+    logger.appendKeys({ perMessageDuration })
+
+    const limit = pLimit(1)
+    const nonConcurrentDelay = () => limit(() => nodeRelativeTimeout(perMessageDuration))
 
     return controller({
       records,
-      perMessageDuration,
       metrics: new AwsConsumerMetrics(metrics, env.get(ConsumerEnvironment.HighResMetrics).required().asBoolean()),
-      logger: new AwsConsumerLogger(logger),
-      timeoutAfter: nodeRelativeTimeout,
-      atMostOneConcurrently: pLimit(1),
+      nonConcurrentDelay,
     })
   })
 
