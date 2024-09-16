@@ -1,10 +1,14 @@
 import { ConsumerMetrics } from "./consumerMetrics.mjs"
 import { Record } from "./record.mjs"
 
+export interface Delay {
+  (): Promise<void>
+}
+
 interface ControllerParams {
   records: Record[]
   metrics: ConsumerMetrics
-  nonConcurrentDelay: () => Promise<void>
+  nonConcurrentDelay: Delay
 }
 
 export async function controller({ records, metrics, nonConcurrentDelay }: ControllerParams) {
