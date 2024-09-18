@@ -35,9 +35,8 @@ export const batchItemFailures = (): MiddlewareObj<SQSRecordWithAnyBody[], Promi
       const response = PromiseSettledSchema.array().parse(request.response)
 
       const batchItemFailures = response
-        .filter(result => result.status === 'rejected')
-        .map((_, index) => request.internal.itemIdentifiers?.[index])
-        .filter((id): id is string => !!id)
+        .map((result, index) => result.status === 'rejected' ? request.internal.itemIdentifiers?.[index] : undefined)
+        .filter((id): id is string => id !== undefined)
         .map(itemIdentifier => ({ itemIdentifier }))
 
       request.response = { batchItemFailures }
