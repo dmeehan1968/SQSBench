@@ -16,6 +16,7 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
     "aws-cdk-lib": "^2.155.0",
     "constructs": "^10.3.0"
   },
