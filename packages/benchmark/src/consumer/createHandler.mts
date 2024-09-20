@@ -1,11 +1,11 @@
 import { ConsumerHandlerParams } from "./consumerHandlerParams.mjs"
 import { Context, Handler, SQSBatchResponse } from "aws-lambda"
 import { sqsRecordNormalizer } from "./sqsRecordNormalizer.mjs"
-import { processBatchItems } from "./processBatchItems.mjs"
 import { SqsRecordWithPayloadSchema } from "@sqsbench/schema"
 
 export function createHandler({
   getLogger,
+  processBatchItems,
   processRecord,
 }: ConsumerHandlerParams): Handler<unknown, SQSBatchResponse> {
 
