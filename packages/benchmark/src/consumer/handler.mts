@@ -1,49 +1,41 @@
-import { Metrics } from "@aws-lambda-powertools/metrics"
-import middy from "@middy/core"
-import { logMetrics } from "@aws-lambda-powertools/metrics/middleware"
-import { parser } from "@aws-lambda-powertools/parser/middleware"
-import errorLogger from "@middy/error-logger"
-import { SqsRecordWithPayloadSchema } from "@sqsbench/schema"
-import { batchItemFailures, sqsRecordNormalizer } from "@sqsbench/middleware"
+import { MetricResolution, Metrics, MetricUnit } from "@aws-lambda-powertools/metrics"
 import { Logger } from "@aws-lambda-powertools/logger"
-import { injectLambdaContext } from "@aws-lambda-powertools/logger/middleware"
-import { AwsConsumerMetrics } from "./awsConsumerMetrics.mjs"
-import { controller } from "./controller.mjs"
 import { ConsumerEnvironment } from "./consumerEnvironment.mjs"
 import pLimit from "p-limit-esm"
-import { logOnExit } from "./logOnExit.mjs"
 import { nodeRelativeTimeout } from "./nodeRelativeTimeout.mjs"
 import { Environment } from "./environment.mjs"
 import { Duration } from "@sqsbench/helpers"
+import { processBatchItems } from "./processBatchItems.mjs"
+import { createHandler } from "./createHandler.mjs"
 
-const metrics = new Metrics()
-const logger = new Logger()
+const [ metrics, logger ] = await Promise.all([
+  Promise.resolve(new Metrics()),
+  Promise.resolve(new Logger()),
+])
+const env = new Environment<ConsumerEnvironment>(process.env)
+const highResMetrics = env.get(ConsumerEnvironment.HighResMetrics).required().asBoolean()
+const perMessageDuration = env.get(ConsumerEnvironment.PerMessageDuration).required().as(v => Duration.parse(v))
+const limit = pLimit(1)
+const synchronousDelay = () => limit(() => nodeRelativeTimeout(perMessageDuration))
 
-export const handler = middy()
-  .use(injectLambdaContext(logger))
-  .use(logMetrics(metrics))
-  .use(errorLogger())
-  .use(sqsRecordNormalizer())
-  .use(batchItemFailures())
-  .use(parser({
-    schema: SqsRecordWithPayloadSchema.array().transform(records => records.map(record => record.body)),
-  }))
-  .handler(async (records) => {
-
-      await using _ = logOnExit(logger)
-
-    const env = new Environment<ConsumerEnvironment>(process.env)
-    const perMessageDuration = env.get(ConsumerEnvironment.PerMessageDuration).required().as(v => Duration.parse(v))
-
-    logger.appendKeys({ perMessageDuration })
-
-    const limit = pLimit(1)
-    const nonConcurrentDelay = () => limit(() => nodeRelativeTimeout(perMessageDuration))
-
-    return controller({
-      records,
-      metrics: new AwsConsumerMetrics(metrics, env.get(ConsumerEnvironment.HighResMetrics).required().asBoolean()),
-      nonConcurrentDelay,
-    })
-  })
+export const handler = createHandler({
+  getLogger: () => ({
+    [Symbol.dispose]: () => {
+      logger.info('Exiting')
+      metrics.publishStoredMetrics()
+    },
+    context: context => logger.addContext(context),
+    perMessageDuration: duration => logger.appendKeys({ perMessageDuration: duration }),
+    highResMetrics: enabled => logger.appendKeys({ highResMetrics: enabled }),
+    messagesReceived: count => metrics.addMetric(
+      'MessagesReceived',
+      MetricUnit.Count,
+      count,
+      highResMetrics ? MetricResolution.High : MetricResolution.Standard,
+    ),
+    error: error => logger.error('Error', { error }),
+  }),
+  processBatchItems,
+  processRecord: synchronousDelay,
+})
 
