@@ -7,8 +7,9 @@ import { Environment } from "./environment.mjs"
 import { Duration } from "@sqsbench/helpers"
 import { processBatchItems } from "./processBatchItems.mjs"
 import { createHandler } from "./createHandler.mjs"
+import { Context } from "aws-lambda"
 
-const [ metrics, logger ] = await Promise.all([
+const [metrics, logger] = await Promise.all([
   Promise.resolve(new Metrics()),
   Promise.resolve(new Logger()),
 ])
@@ -18,15 +19,15 @@ const perMessageDuration = env.get(ConsumerEnvironment.PerMessageDuration).requi
 const limit = pLimit(1)
 const synchronousDelay = () => limit(() => nodeRelativeTimeout(perMessageDuration))
 
-export const handler = createHandler({
-  getLogger: () => ({
-    [Symbol.dispose]: () => {
-      logger.info('Exiting')
-      metrics.publishStoredMetrics()
-    },
+/**
+ * This creates the inner handler which does the work, with the implementation specific
+ * details
+ */
+const _handler = createHandler({
+  log: {
     context: context => logger.addContext(context),
-    perMessageDuration: duration => logger.appendKeys({ perMessageDuration: duration }),
-    highResMetrics: enabled => logger.appendKeys({ highResMetrics: enabled }),
+    perMessageDuration: () => logger.appendKeys({ perMessageDuration }),
+    highResMetrics: () => logger.appendKeys({ highResMetrics }),
     messagesReceived: count => metrics.addMetric(
       'MessagesReceived',
       MetricUnit.Count,
@@ -34,8 +35,22 @@ export const handler = createHandler({
       highResMetrics ? MetricResolution.High : MetricResolution.Standard,
     ),
     error: error => logger.error('Error', { error }),
-  }),
+  },
   processBatchItems,
   processRecord: synchronousDelay,
 })
 
+/**
+ * This is the actual handler entry point and ensures that the logger and metrics
+ * are flushed after the inner handler has completed
+ */
+export const handler = async (event: unknown, context: Context) => {
+  using _ = {
+    [Symbol.dispose]: () => {
+      logger.info('Done')
+      metrics.publishStoredMetrics()
+    },
+  }
+
+  return await _handler(event, context)
+}

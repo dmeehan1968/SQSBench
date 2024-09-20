@@ -3,7 +3,7 @@ import { ProcessBatchItems } from "./processBatchItems.mjs"
 import { Record } from "./record.mjs"
 
 export interface ConsumerHandlerParams {
-  getLogger: () => ConsumerLogger
+  log: ConsumerLogger
   processBatchItems: ProcessBatchItems
   processRecord: (record: Record) => Promise<void>
 }
