@@ -19,6 +19,6 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "aws-cdk-lib": "^2.155.0"
+    "aws-cdk-lib": "^2.159.1"
   }
 }
