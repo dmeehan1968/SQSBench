@@ -10,9 +10,10 @@ import { createHandler } from "./createHandler.mjs"
 import { Context } from "aws-lambda"
 
 const [metrics, logger] = await Promise.all([
-  Promise.resolve(new Metrics()),
-  Promise.resolve(new Logger()),
+  new Promise<Metrics>(resolve => resolve(new Metrics())),
+  new Promise<Logger>(resolve => resolve(new Logger())),
 ])
+
 const env = new Environment<ConsumerEnvironment>(process.env)
 const highResMetrics = env.get(ConsumerEnvironment.HighResMetrics).required().asBoolean()
 const perMessageDuration = env.get(ConsumerEnvironment.PerMessageDuration).required().as(v => Duration.parse(v))
