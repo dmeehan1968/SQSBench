@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.options.json",
   "compilerOptions": {
-    "outDir": "./lib"
+    "outDir": "dist"
   },
   "references": [
     { "path": "./packages/app"},
