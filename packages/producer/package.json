@@ -17,14 +17,14 @@
   "description": "",
   "devDependencies": {
     "@types/aws-lambda": "^8.10.145",
-    "aws-cdk-lib": "^2.159.1",
+    "aws-cdk-lib": "^2.160.0",
     "constructs": "^10.3.0"
   },
   "dependencies": {
     "@aws-lambda-powertools/logger": "^2.8.0",
-    "@aws-sdk/client-lambda": "^3.656.0",
-    "@aws-sdk/client-sqs": "^3.654.0",
-    "@aws-sdk/client-ssm": "^3.654.0",
+    "@aws-sdk/client-lambda": "^3.658.1",
+    "@aws-sdk/client-sqs": "^3.658.1",
+    "@aws-sdk/client-ssm": "^3.658.1",
     "@middy/core": "^5.5.0",
     "@middy/error-logger": "^5.5.0",
     "@sqsbench/helpers": "0.0.1",
