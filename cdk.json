@@ -1,5 +1,5 @@
 {
-  "app": "tsx packages/app/src/index.mts",
+  "app": "npx tsx packages/app/src/index.mts",
   "watch": {
     "include": [
       "**"
