@@ -1,17 +1,23 @@
 {
-  "extends": "./tsconfig.options.json",
+  "extends": ["./tsconfig.base.json"],
   "compilerOptions": {
-    "outDir": "dist"
+    "rootDir": "./",
+    "declaration": true,
+
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
+    "types": [
+      "jest",
+      "@monorepo/jest-cdk-matchers"
+    ]
   },
-  "references": [
-    { "path": "./packages/app"},
-    { "path": "./packages/benchmark"},
-    { "path": "./packages/constructs"},
-    { "path": "./packages/dashboard"},
-    { "path": "./packages/helpers"},
-    { "path": "./packages/middleware"},
-    { "path": "./packages/producer"},
-    { "path": "./packages/schema"},
+  "include": [
+    "./jest.setup.ts"
   ],
-  "include": ["app/**/*.[m]ts", "packages/**/*.[m]ts"]
+  "references": [
+    { "path": "./packages/app" },
+    { "path": "./packages/jest-cdk-matchers" },
+    { "path": "./packages/my-function" }
+  ]
 }

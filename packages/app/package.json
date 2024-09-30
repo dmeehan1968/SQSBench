@@ -6,8 +6,7 @@
     "./src"
   ],
   "exports": {
-    ".": "./src/index.mts",
-    "./*": "./src/*.mts"
+    ".": "./src/SqsBench.mts"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

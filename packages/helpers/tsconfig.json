@@ -1,9 +1,8 @@
 {
-  "extends": "../../tsconfig.options.json",
+  "extends": ["../../tsconfig.package.json"],
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src"
+    "outDir": "dist"
   },
-  "include": ["src/**/*.[m]ts"],
+  "include": ["src/**/*.mts"],
   "references": []
 }

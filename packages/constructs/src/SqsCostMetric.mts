@@ -1,8 +1,9 @@
 import { Duration } from "aws-cdk-lib"
 import { MathExpression, Unit } from "aws-cdk-lib/aws-cloudwatch"
-import { Queue, Fqn } from "@sqsbench/constructs"
 import { Statistic } from "@aws-sdk/client-cloudwatch"
 import { toExprName } from "@sqsbench/helpers"
+import { Queue } from './Queue.mjs'
+import { Fqn } from './Fqn.mjs'
 
 interface SqsCostMetricProps {
   period?: Duration
