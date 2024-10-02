@@ -97,7 +97,7 @@ export class SqsTest extends Construct {
     this.highResMetricsEnabled = props.pollerType === PollerType.Pipe && props.batchWindow.toSeconds() === 0 && (props.highResMetrics ?? false)
 
     this.consumer = new NodejsFunction(this, 'Consumer', {
-      entry: import.meta.resolve('./consumer/handler.mts').replace(/^file:\/\//, ''),
+      entry: new URL('./consumer/handler.mts', import.meta.url).pathname,
       deadLetterQueue: this.queue.deadLetterQueue?.queue,
       bundling: { nodeModules: [ 'zod', '@middy/core' ]},
       memorySize: 128,
@@ -136,7 +136,7 @@ export class SqsTest extends Construct {
 
       case PollerType.Lambda: {
         this.poller = new NodejsFunction(this, 'Poller', {
-          entry: import.meta.resolve('./poller/handler.mts').replace(/^file:\/\//, ''),
+          entry: new URL('./poller/handler.mts', import.meta.url).pathname,
           // allow polling time + time for the consumer to run its final batch
           timeout: props.maxSessionDuration.plus(Duration.seconds(Math.ceil(((50 * props.batchSize) + 3000) / 1000))),
           bundling: { nodeModules: [ 'zod' ]},

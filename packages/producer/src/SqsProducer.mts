@@ -42,13 +42,13 @@ export class SqsProducer extends Construct {
       .map(q => q.queue)
 
     const producer = new NodejsFunction(this, 'Default', {
-      entry: import.meta.resolve('./producerHandler.mts').replace(/^file:\/\//, ''),
+      entry: new URL('./producerHandler.mts', import.meta.url).pathname,
       timeout: Duration.minutes(1),
       bundling: { nodeModules: [ 'zod', '@middy/core' ] },
     })
 
     const emitter = new NodejsFunction(this, 'Emitter', {
-      entry: import.meta.resolve('./emitterHandler.mts').replace(/^file:\/\//, ''),
+      entry: new URL('./emitterHandler.mts', import.meta.url).pathname,
       timeout: Duration.minutes(1),
       bundling: { nodeModules: [ 'zod', '@middy/core' ] },
     })
