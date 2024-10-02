@@ -11,7 +11,7 @@ const logger = new Logger()
 
 async function _handler(unknown: unknown) {
 
-  // noinspection JSUnusedLocalSymbols
+    // @ts-ignore
     await using flushOnExit = { [Symbol.asyncDispose]: async () => logger.info('Done') }
 
   logger.appendKeys({ lambdaEvent: unknown })

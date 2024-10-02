@@ -19,7 +19,7 @@ const ssm = new SSMClient()
 const lambda = new LambdaClient()
 
 async function _handler(event: unknown) {
-  // noinspection JSUnusedLocalSymbols
+    // @ts-ignore
     await using flushOnExit = { [Symbol.asyncDispose]: async () => logger.info('Done') }
 
   logger.appendKeys({ lambdaEvent: event })
