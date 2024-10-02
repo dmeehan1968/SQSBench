@@ -50,7 +50,7 @@ export class SqsPollerController {
 
       // await here if there are pending consumers, so we don't get ahead of ourselves with polling
       while (concurrencyController.pendingCount) {
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise(resolve => setTimeout(resolve, 1))
       }
     }
 
