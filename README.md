@@ -5,6 +5,12 @@
 This is a CDK application that can be deployed to your own Amazon Web Services (AWS) account to allow you to 
 evaluate the resource utilisation/cost of using Amazon Simple Queue Service (SQS) in a serverless environment.
 
+It will run automated tests to simulate messages and associated processing.
+
+IMPORTANT: This application will incur charges on your account whilst tests are enabled.  You can leave
+the application deployed in order to continue looking at historical results, but you should disable
+the tests when you are not actively measuring.
+
 SQS Supports multiple ways to consume messages from a queue, including:
 
 - EventBridge Pipes
@@ -12,6 +18,14 @@ SQS Supports multiple ways to consume messages from a queue, including:
 - Manual Polling via Lambda
 
 NB: This application uses SQS Standard Queues only
+
+It's important to understand that SQS charges are levied based on the number of API requests made, rather
+than the number of messages sent/received.  EventBridge Pipes are optimised towards high message rates and 
+low latency delivery, and will upscale aggressively to meet demand, but downscale more conservatively.
+If you have modest message rates, or are not concerned about latency, you may find that other polling mechanisms
+are more cost effective.  This application is designed to help you find out the sweet spot.
+
+![Sample Widget](./docs/assets/SampleWidget.png "Sample Widget")
 
 ## Usage
 
@@ -87,6 +101,8 @@ background level.  When message flow restarts, it takes another period of time f
 deal with the new message rate.  By allowing a period of inactivity you can ensure that the next message rate to be
 tested reflects the real world significance of fluctuating message rates.
 
+If you anticipate a sustained message rate, you can set the dutyCycle to 1, so that the producer is always active.
+
 ### rateDurationInMinutes
 
 The duration in minutes that the producer will spend at each message rate.  In practice this should normally be 
@@ -122,6 +138,8 @@ you can still review historical metrics.
 
 Even within test different poller types, there is latitude for fine tuning the poller configuration, so you
 may well want to run more than one test for each poller type so you can see the effects.
+
+NB: The producer is only enabled if there is at least one test enabled.
 
 ```typescript
 tests: [
@@ -166,6 +184,67 @@ For Lambda and Event Source pollers, the maximum number of consumers that can be
 will runtime is determined by the consumerPerMessageDuration setting.
 
 For Event Source pollers, it can be omitted for no limit (other than account limitations)
+
+#### highResMetrics
+
+Whether to enable high resolution metrics, which gives visibility of how messages are distributed within the minute.
+You only need to enabled one test with highResMetrics for this to work.  If it is disabled, it shows the standard
+resolution metrics, but this isn't much use as its not sufficiently granular to show the distribution of messages
+within the minute.  
+
+Enabling this is really only useful when designing the weight distribution.  
+
+IMPORTANT: can lead to high Cloudwatch charges if left enabled for long periods.
+
+## Dashboard
+
+The dashboard shows the following metrics:
+
+### Total Cost Per Period
+
+The sum of the cost for each test for the selected period (default, 1 minute).  The numbers can be tiny, but this
+gives a good view over the period of each test and allows for comparison.  There is a good degree of fluctuation due
+to AWS overheads/latencies, and you can smooth some of this out by switching the dashboard period to 5 minutes or more,
+which will make it easier to compare the different tests.
+
+### Total Cost Per Month
+
+The sum of the cost for each test prorated to a monthly cost.  This can be more understandable than the cost per period
+as its likely how you view your AWS costs based on invoices.  The costs are derived from each hour, so the widget will
+be behind by up to an hour in the values it shows.
+
+### Cost of Consumer
+
+The cost of the consumer for the selected period.
+
+### Cost Per Message
+
+The cost per message for the selected period.
+
+### Approximate Number of Messages Visible
+
+The number of messages visible in the queue during the period (messages waiting to be polled)
+
+### Approximate Age of Oldest Messages
+
+The age of the oldest message in the queue during the period.
+
+### Messages Received
+
+The number of messages received by the queue during the period.
+
+### Empty Receives
+
+The number of empty receives by the queue during the period.
+
+### Average Messages Received at Consumer
+
+The average number of messages received by the consumer during the period.
+
+### Weighted Message Rate
+
+The weighted message rate for the period.  When highResMetrics is enabled, this allows you to see the way in which 
+messages are being distributed across the minute.
 
 ## Packages
 
