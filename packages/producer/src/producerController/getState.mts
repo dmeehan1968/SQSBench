@@ -42,7 +42,7 @@ export async function getState({
     if (rate === 0) {
       rateChangeAt.setHours(rateChangeAt.getHours() + 1, 0, 0, 0)
     } else {
-      rateChangeAt.setMinutes(rateChangeAt.getMinutes() + rateDurationInMinutes, 0, 0)
+      rateChangeAt.setMinutes(rateDurationInMinutes, 0, 0)
     }
     const response = await putState({ parameterName, rate, rateChangeAt, ssm })
 
