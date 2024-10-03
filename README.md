@@ -2,6 +2,11 @@
 
 ## Motivation
 
+To better understand the trade-offs between different polling mechanisms for Amazon Simple Queue Service (SQS)
+by comparing the resource utilisation and cost of each method.
+
+## Implementation
+
 This is a CDK application that can be deployed to your own Amazon Web Services (AWS) account to allow you to 
 evaluate the resource utilisation/cost of using Amazon Simple Queue Service (SQS) in a serverless environment.
 
@@ -31,15 +36,33 @@ are more cost effective.  This application is designed to help you find out the 
 
 1. Clone the repository
 2. `npm install` to install the dependencies
-3. Edit `packages/app/index.ts` to configure and enabled the tests you want to run
+3. Edit `packages/app/index.ts` to configure and enable the tests you want to run (tests run in parallel to aid 
+   comparison)
 4. `cdk deploy` to deploy the stack (assumes you have the CLI installed and configured for your AWS account)
-5. Go to the AWS Console > CloudWatch > Dashboards and select the `SQSBench` dashboard to monitor the tests
+5. Go to the AWS Console > CloudWatch > Dashboards and select the `SQSBenchDashboard-XXXX` to monitor the tests
+
+## A Word about Test Resource Names
+
+The resources created by the tests are named according to the test parameters.  This is to allow you to easily
+identify the resources created by each test.  The names are hashed to ensure they are unique.  They are also used 
+to associated test metrics for the dashboard, so if you change the parameters of the tests, you will also
+change the resource names and lose association with historical results.
+
+If you want to refine the test parameters for a further test, it would be better to duplicate the original test 
+definition, disable the original version and change the parameters on the copy.  Only remove tests from the array 
+if you are sure you no longer need access to the historical metrics/logs etc, and removing the test will destroy 
+the resources.
+
+NB: You can't have two tests with the same parameters, as this will prevent resource creation.
 
 ## Methodology
 
-Each test creates its own queue, a consumer lambda to act as the target for the messages, and any additional resources
+Each test creates a queue, consumer lambda to act as the target for the messages, and any additional resources
 necessary to direct the messages to the consumer (e.g. Pipe, Event Source Mapping or Lambda Poller), and a single 
-producer lambda to generate the messages.
+producer lambda to generate the messages for all tests.
+
+Test resources are named according to the test parameters, e.g a Pipe test with batch size 10, and batch window 10
+will be named `SQSBenchTest-Pipe-B10-W10-[hash]` (where hash is 8 hex digits).
 
 The producer lambda is invoked once per minute by an EventBridge scheduler rule.  The producer lambda checks for
 the parameter store for the current state of the test, and generates an batch of messages based on the prevailing
@@ -71,6 +94,7 @@ new SqsBench(app, 'SqsBench', {
   rateDurationInMinutes: 60,
   rateScaleFactor: 2,
   weightDistribution: [1, 2, 1],
+  consumerMemory: 128,
   tests: [ /* ... */],
 })
 ```
@@ -127,6 +151,10 @@ This allows you to create some clustering of messages to simulate real world sce
 distributed across the minute.  With low message rates, randomisation could easily lead to biases towards the start
 or end of the minute, whereas for high message rates, the distribution will be more even.  By configuring the weight
 distribution you can apply some bias to the message generation.
+
+### consumerMemory
+
+The memory setting for the consumer lambda.  This will have a bearing on the cost of the consumer.
 
 ### tests
 
@@ -196,6 +224,22 @@ Enabling this is really only useful when designing the weight distribution.
 
 IMPORTANT: can lead to high Cloudwatch charges if left enabled for long periods.
 
+#### invocationType
+
+For Lambda pollers, the consumer can be invoked with using Request/Response or Event (async) invocation types. 
+Depending on the configuration and consumer perMessageDuration, there may be a difference in the approach.
+
+This affects how the consumer is invoked by the poller.  With Request/Response (-RR suffix on the test name),
+the poller invokes the consumer and waits for the response, then processes message deletions from the queue
+(accounting for any batch item failures reported by the consumer).  The maxConcurrency limits the number of 
+concurrent consumers and thus slows down polling of messages from the queue.
+
+The Event invocation type (-EV suffix on the test name) is a fire and forget invocation (async).  The poller 
+invokes the consumer but attaches a lambda destination to the outcome, which handles the message deletions from the
+queue.  This allows the poller to continue polling messages from the queue without waiting for the consumer to
+complete and should increase throughput.  Consumer concurrency is limited by setting Reserved Concurrency on the
+consumer lambda (which limits the concurrency but also reserves concurrency across your AWS account).
+
 ## Dashboard
 
 The dashboard shows the following metrics:
@@ -246,51 +290,20 @@ The average number of messages received by the consumer during the period.
 The weighted message rate for the period.  When highResMetrics is enabled, this allows you to see the way in which 
 messages are being distributed across the minute.
 
-## Packages
+## Observations
 
-### Producer
+Pipes tend to work out more expensive BUT have the advantage of being fully scalable.  By design they incur a high
+number of empty receives due to potentially redundant pollers, but this is a trade-off for the low latency delivery.
+The cost overhead tends to build over time to as it adjusts to consistent message rates, and may cope better than
+other solutions to fluctating/bursty message rates.  When traffic does go away, it takes a fair while for the 
+redundant pollers to age out.
 
-A Lambda function that generates messages according to the prevailing message rate per minute.
+Event Source Mapping works similarly to Pipes but without the ultimate in scaling, and has the advantage that you can
+constrain the concurrency to reduce the overhead at lower message rates.  The downside is that hobbles the scaling
+ability and therefore bursts/increases in traffic can lead to backlogs, thus increasing latency.
 
-The producer:
-- Must be invoked once by an EventBridge scheduler rule every minute
-- Must use the prevailing message rate per minute to determine the number of messages to produce
-- Must calculate a delay for each message based on the specified distribution algorithm
-- Must sort the messages according to ascending delay
-- Must invoke the emitter in request/response mode, to allow for messages to be processed
-- Must invoke all emitters with the same set of messages
-- Must invoke an emitter for each queue specified
-- Must create multiple emitter invocations to avoid exceeding 500 messages per invocation
-- Must limit emitter invocations to 50 concurrent requests
+The Lambda poller is somewhat simplistic, and trades latency for cost.  You need to be comfortable with >1 minute
+latency on message processing.  The cost is more predictable and scales well through lower message rates, but is
+ultimately capped by the ability to deal with both polling and consumer invocations once message rates exceed
+its capability.
 
-### Emitter
-
-A Lambda function that sends messages to a queue.  The messages are sent in batches of 10.  The emitter is invoked
-by the producer.
-
-The emitter:
-- Must not send more than 10 messages per request to the queue.
-- Must not make more than 50 concurrent requests to the queue.
-
-### Poller
-
-- Must be created for each queue specified as a poller based queue
-- Must use the specified batch size, receive time and concurrency
-- Must be invoked once per minute by an EventBridge scheduler rule
-- Must poll the queue for messages using the specified batch size and receive time
-- Must invoke the consumer with the messages received
-
-### Consumer
-
-- Must pause for the specified message duration for each message received
-- Must return batch item failures if any
-
-### Pipe
-
-- Must be created for each queue specified as a pipe based queue
-- Must use the specified batch size and batching window
-
-### Event Source Mapping
-
-- Must be created for each queue specified as an Event Source Map based queue
-- Must use the specified batch size, batching window and concurrency

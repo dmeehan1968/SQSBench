@@ -10,6 +10,8 @@ import { DesiredState, Pipe } from "@aws-cdk/aws-pipes-alpha"
 import { SqsSource } from "@aws-cdk/aws-pipes-sources-alpha"
 import { LambdaFunction as LambdaPipeTarget } from "@aws-cdk/aws-pipes-targets-alpha"
 import { PollerProps } from "@sqsbench/schema"
+import { LambdaDestination } from 'aws-cdk-lib/aws-lambda-destinations'
+import { InvocationType } from '@aws-sdk/client-lambda'
 
 export enum PollerType {
   Pipe = 'Pipe',
@@ -53,6 +55,8 @@ interface LambdaProps {
    * are not empty.
    */
   maxSessionDuration: Duration
+
+  invocationType: InvocationType
 }
 
 export type SqsTestProps = (PipeProps | EventSourceProps | LambdaProps) & {
@@ -60,6 +64,7 @@ export type SqsTestProps = (PipeProps | EventSourceProps | LambdaProps) & {
   batchWindow: Duration
   enabled?: boolean
   perMessageDuration?: Duration
+  consumerMemory?: number
 }
 
 export class SqsTest extends Construct {
@@ -70,10 +75,14 @@ export class SqsTest extends Construct {
   public readonly enabled: boolean
   public readonly supportsHighRes: boolean
   public readonly highResMetricsEnabled: boolean
+  public readonly completionFn: NodejsFunction | undefined
 
   constructor(scope: Construct, props: SqsTestProps) {
 
-    const id = `Test-${props.pollerType}-B${props.batchSize}-W${props.batchWindow.toSeconds()}` + (props.maxConcurrency !== undefined ? `-C${props.maxConcurrency}` : '')
+    let id = `Test-${props.pollerType}-B${props.batchSize}-W${props.batchWindow.toSeconds()}` + (props.maxConcurrency !== undefined ? `-C${props.maxConcurrency}` : '')
+    if (props.pollerType === PollerType.Lambda) {
+      id += `-${props.invocationType === InvocationType.Event ? 'EV' : 'RR'}`
+    }
 
     super(scope, id)
 
@@ -96,17 +105,32 @@ export class SqsTest extends Construct {
     this.supportsHighRes = props.pollerType === PollerType.Pipe && props.batchWindow.toSeconds() === 0
     this.highResMetricsEnabled = props.pollerType === PollerType.Pipe && props.batchWindow.toSeconds() === 0 && (props.highResMetrics ?? false)
 
+    if (props.pollerType === PollerType.Lambda && props.invocationType === InvocationType.Event) {
+      this.completionFn = new NodejsFunction(this, 'Completion', {
+        entry: new URL('./consumer/completion.handler.mts', import.meta.url).pathname,
+        bundling: { nodeModules: [ 'zod' ]},
+      })
+
+      this.queue.grantConsumeMessages(this.completionFn)
+
+    }
+
     this.consumer = new NodejsFunction(this, 'Consumer', {
       entry: new URL('./consumer/handler.mts', import.meta.url).pathname,
       deadLetterQueue: this.queue.deadLetterQueue?.queue,
       bundling: { nodeModules: [ 'zod', '@middy/core' ]},
-      memorySize: 128,
+      memorySize: props.consumerMemory ?? 128,
       environment: {
         PER_MESSAGE_DURATION: perMessageDuration.toIsoString(),
         HIGH_RES_METRICS: this.supportsHighRes && (props.pollerType === PollerType.Pipe && (props.highResMetrics ?? false)) ? 'true' : 'false',
       },
       timeout,
+      onSuccess: this.completionFn ? new LambdaDestination(this.completionFn) : undefined,
+      onFailure: this.completionFn ? new LambdaDestination(this.completionFn) : undefined,
+      reservedConcurrentExecutions: this.completionFn ? props.maxConcurrency : undefined,
     })
+
+    this.completionFn?.grantInvoke(this.consumer)
 
     switch (props.pollerType) {
 
@@ -158,6 +182,7 @@ export class SqsTest extends Construct {
               batchWindow: props.batchWindow.toSeconds(),
               maxSessionDuration: props.maxSessionDuration.toSeconds(),
               maxConcurrency: props.maxConcurrency,
+              invocationType: props.invocationType,
             } satisfies PollerProps)
           }) ],
           enabled: props.enabled ?? false,
@@ -214,7 +239,7 @@ export class SqsTest extends Construct {
   }
 
   /*
-   * Calculate the cost of the entire test (SQS, polling type and consumer)
+   * Calculate the cost of the entire test (SQS, polling type, consumer and completion if applicable)
    *
    * @param period The period over which to calculate the cost - default 1 minute
    * @param label The label to use for the metric - default 'Cost'
@@ -224,13 +249,17 @@ export class SqsTest extends Construct {
     const sqsCost = Fqn(this, { suffix: 'SqsCost', transform: toExprName })
     const pollingCost = Fqn(this, { suffix: 'PollingCost', transform: toExprName })
     const consumerCost = Fqn(this, { suffix: 'ConsumerCost', transform: toExprName })
+    const completionCost = this.completionFn ? Fqn(this, { suffix: 'CompletionCost', transform: toExprName }) : '0'
     return new MathExpression({
       label: [Fqn(this, { allowedSpecialCharacters: '-' }), label].join(' '),
-      expression: `${sqsCost} + ${pollingCost} + ${consumerCost}`,
+      expression: `${sqsCost} + ${pollingCost} + ${consumerCost} + ${completionCost}`,
       usingMetrics: {
         [sqsCost]: this.metricSqsCost({ period, label: 'SQS Cost' }),
         [pollingCost]: this.metricPollingCost({ period, label: 'Polling Cost', statistic }),
         [consumerCost]: this.metricConsumerCost({ period, label: 'Consumer Cost', statistic }),
+        ...(this.completionFn && {
+          [completionCost]: new LambdaCostMetric(this.completionFn, { period, label: 'Completion Cost', statistic }),
+        })
       }
     })
   }

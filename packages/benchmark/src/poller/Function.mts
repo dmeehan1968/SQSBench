@@ -14,6 +14,7 @@ export class Function extends EventEmitter<FunctionEvents> {
     private readonly lambda: LambdaClient,
     private readonly functionArn: string,
     logger: Logger,
+    private readonly invocationType: InvocationType
   ) {
     super(logger)
   }
@@ -22,7 +23,7 @@ export class Function extends EventEmitter<FunctionEvents> {
     this.logger.info(`Invoking ${this.functionArn}`)
     const res = await this.lambda.send(new InvokeCommand({
       FunctionName: this.functionArn,
-      InvocationType: InvocationType.RequestResponse,
+      InvocationType: this.invocationType,
       Payload: Buffer.from(JSON.stringify(request)),
     }))
 
@@ -32,8 +33,10 @@ export class Function extends EventEmitter<FunctionEvents> {
       return
     }
 
+    const payload = res.Payload?.transformToString() ?? ''
+
     await this.emit('response', {
-      res: JSON.parse(res.Payload?.transformToString() ?? ''),
+      res: payload.length ? JSON.parse(payload) : null,
       req: request,
     })
 

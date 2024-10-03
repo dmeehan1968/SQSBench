@@ -74,6 +74,12 @@ interface Props {
    */
 
   weightDistribution?: number[]
+
+  /**
+   * The memory size of the consumer function.  Must be a multiple of 64 between 128 and 3008.
+   */
+
+  consumerMemory?: number
 }
 
 /**
@@ -147,7 +153,8 @@ export class SqsBench extends Stack {
     // add tests
     const tests = props.tests.map(test => new SqsTest(this, {
       ...test,
-      perMessageDuration: props.consumerPerMessageDuration
+      perMessageDuration: props.consumerPerMessageDuration,
+      consumerMemory: props.consumerMemory,
     }))
 
     // add producer
