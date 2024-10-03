@@ -48,10 +48,6 @@ export class SqsPollerController {
       void concurrencyController(() => consumer.invoke(this.transformSQSMessagesToSQSEvent(messages, props.queueArn)))
       await batch.clear()
 
-      // TODO: Refactor if using Event invocation and a destination to handle deletions
-      // As the concurrency is now for the invoke, not the consumer duration.  We might need to track request IDs
-      // and do some sort of polling to know when they are all done, so we can continue polling
-
       // await here if there are pending consumers, so we don't get ahead of ourselves with polling
       while (concurrencyController.pendingCount) {
         await new Promise(resolve => setTimeout(resolve, 1))
@@ -88,8 +84,6 @@ export class SqsPollerController {
         MessageId: record.messageId,
         ReceiptHandle: record.receiptHandle,
       }))
-
-      // TODO: Need to refactor this if using Event invocation and a destination to handle deletions
 
       if (res && Array.isArray(res.batchItemFailures)) {
         const failures = res.batchItemFailures as SQSBatchItemFailure[]
