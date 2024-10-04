@@ -203,8 +203,11 @@ The type of poller to use.  The options are:
 #### maxSessionDuration
 
 For Lambda pollers, the maximum time that the poller runs for.  The poller is started every minute and reads as
-many messages as possible in the maxSessionDuration time.  If the poller gets and empty receive it will stop polling
-until the next invocation.
+many messages as possible in the maxSessionDuration time.  The poller may end the session early if there is an
+empty receive or the per second message rate drops below 10% of the peak rate within the same session.  This
+prevents the poller from consuming excessive Lambda compute or being kept alive by a trickle of messages which could 
+be more effectively collected on a subsequent poll (valid given that Lambda pollers are attempting to optimise
+resource usage whilst deprioritizing latency, unlike the AWS managed pollers).
 
 #### maxConcurrency
 
