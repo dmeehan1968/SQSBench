@@ -15,8 +15,8 @@ new SqsBench(app, 'SqsBench', {
   weightDistribution: [1, 2, 1],
   consumerMemory: 128,
   tests: [
-    { enabled: false, batchSize: 100, batchWindow: Duration.seconds(0), pollerType: PollerType.Lambda, maxSessionDuration: Duration.seconds(60), maxConcurrency: 5, invocationType: InvocationType.REQUEST_RESPONSE },
-    { enabled: false, batchSize: 100, batchWindow: Duration.seconds(0), pollerType: PollerType.Lambda, maxSessionDuration: Duration.seconds(60), maxConcurrency: 50, invocationType: InvocationType.EVENT },
+    { enabled: true, batchSize: 100, batchWindow: Duration.seconds(5), pollerType: PollerType.Lambda, maxSessionDuration: Duration.seconds(60), maxConcurrency: 5, invocationType: InvocationType.REQUEST_RESPONSE },
+    { enabled: true, batchSize: 100, batchWindow: Duration.seconds(5), pollerType: PollerType.Lambda, maxSessionDuration: Duration.seconds(60), maxConcurrency: 50, invocationType: InvocationType.EVENT },
     // { enabled: false, batchSize: 10, batchWindow: Duration.seconds(5), pollerType: PollerType.Lambda, maxSessionDuration: Duration.seconds(60), maxConcurrency: 2 },
     // { enabled: false, batchSize: 10, batchWindow: Duration.seconds(10), pollerType: PollerType.Lambda, maxSessionDuration: Duration.seconds(60), maxConcurrency: 2 },
     // { enabled: false, batchSize: 10, batchWindow: Duration.seconds(20), pollerType: PollerType.Lambda, maxSessionDuration: Duration.seconds(60), maxConcurrency: 2 },

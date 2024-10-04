@@ -108,6 +108,7 @@ export class NodejsFunction extends NodejsFunctionBase {
           },
         } : {}),
         format: OutputFormat.ESM,
+        banner: "import { createRequire } from 'module';const require = createRequire(import.meta.url);",
         metafile: true,
         externalModules: [...computedExternalModules],
       } satisfies NodejsFunctionBaseProps['bundling']),

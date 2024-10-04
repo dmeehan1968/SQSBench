@@ -11,18 +11,22 @@ import { Timer } from "./Timer.mjs"
 import { clamp } from "@sqsbench/helpers"
 import { Batch } from "./Batch.mjs"
 import pLimit from "p-limit-esm"
+import { Tracer } from '@aws-lambda-powertools/tracer'
+import { captureLambdaHandler } from '@aws-lambda-powertools/tracer/middleware'
 
 export class SqsPollerController {
   constructor(
     private readonly lambda: LambdaClient,
     private readonly sqs: SQSClient,
     private readonly logger: Logger,
+    private readonly tracer: Tracer,
   ) {
   }
 
   get handler() {
     return middy()
       .use(injectLambdaContext(this.logger))
+      .use(captureLambdaHandler(this.tracer))
       .handler(this._handler.bind(this))
   }
 
@@ -32,8 +36,8 @@ export class SqsPollerController {
 
     const consumer = new Function(this.lambda, props.functionArn, this.logger, props.invocationType)
     const queue = new Queue(this.sqs, props.queueUrl, this.logger)
-    using sessionTimer = new Timer(clamp(props.maxSessionDuration * 1000, { max: Math.max(0, context.getRemainingTimeInMillis() - 10_000) }), this.logger)
-    using batchTimer = new Timer(props.batchWindow * 1000, this.logger)
+    using sessionTimer = new Timer('Session', clamp(props.maxSessionDuration * 1000, { max: Math.max(0, context.getRemainingTimeInMillis() - 10_000) }), this.logger)
+    using batchTimer = new Timer('Batch', Math.max(props.batchWindow * 1000, 1000), this.logger)
     const batch = new Batch<Message>(props.batchSize, this.logger)
     const concurrencyController = pLimit(props.maxConcurrency)
 
@@ -41,6 +45,7 @@ export class SqsPollerController {
       if (batch.length === 0) {
         return
       }
+
       // need to take a copy of the messages from the batch, so we can clear it before the consumer gets invoked
       const messages = batch.toArray()
 
@@ -56,6 +61,7 @@ export class SqsPollerController {
 
     queue
       .on('messages', async (messages) => {
+        this.logger.info(`Received ${messages.length} messages`)
         await batch.push(messages)
       })
       .on('stopped', async () => {
@@ -68,13 +74,11 @@ export class SqsPollerController {
     })
 
     batchTimer.on('timeout', async () => {
-      this.logger.info('Batch timeout')
       await invokeConsumer()
       batchTimer.start()
     })
 
     sessionTimer.on('timeout', async () => {
-      this.logger.info('Session timeout')
       queue.stop()
       batchTimer.stop()
     })
@@ -99,7 +103,7 @@ export class SqsPollerController {
 
     await queue.poll(() => ({
       MaxNumberOfMessages: clamp(batch.spaceRemaining, { max: 10 }),
-      WaitTimeSeconds: clamp(batchTimer.timeRemainingInSeconds, { min: 1, max: 20 }),
+      WaitTimeSeconds: 1,
     }))
 
     await invokeConsumer()

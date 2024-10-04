@@ -43,7 +43,7 @@ export class EventEmitter<Events extends Record<string, any>> implements IEventE
     }
     const limit = pLimit(options?.concurrency ?? 1)
     const all = [...subscribers].map(async (subscriber) => limit(() => subscriber(payload)))
-    this.logger.info(`Emitting '${String(event)}' to ${all.length} subscribers`, { payload })
+    this.logger.debug(`Emitting '${String(event)}' to ${all.length} subscribers`, { payload })
     const results = await Promise.allSettled(all)
     results.filter(result => result.status === 'rejected').forEach(result => this.emit('error', result.reason))
     return

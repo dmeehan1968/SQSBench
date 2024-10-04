@@ -33,12 +33,14 @@ export class Function extends EventEmitter<FunctionEvents> {
       return
     }
 
-    const payload = res.Payload?.transformToString() ?? ''
+    if (this.invocationType === InvocationType.RequestResponse) {
+      const payload = res.Payload?.transformToString() ?? ''
 
-    await this.emit('response', {
-      res: payload.length ? JSON.parse(payload) : null,
-      req: request,
-    })
+      await this.emit('response', {
+        res: payload.length ? JSON.parse(payload) : null,
+        req: request,
+      })
+    }
 
   }
 }

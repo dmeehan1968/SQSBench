@@ -10,7 +10,11 @@ export class Timer extends EventEmitter<TimerEvents> {
   private timer: NodeJS.Timeout | undefined
   private endTime: Date | undefined
 
-  constructor(private _duration: number, logger: Logger) {
+  constructor(
+    public readonly name: string,
+    private _duration: number,
+    logger: Logger
+  ) {
     super(logger)
     this.start()
   }
@@ -31,12 +35,16 @@ export class Timer extends EventEmitter<TimerEvents> {
   }
 
   start(duration: number = this.duration) {
+    this.logger.debug(`Starting ${this.name} timer ${duration}ms`)
     if (duration === 0) {
       return
     }
     if (!this.timer) {
       this._duration = duration
-      this.timer = setTimeout(() => this.emit('timeout', undefined), clamp(this.duration, { min: 0, max: Infinity }))
+      this.timer = setTimeout(() => {
+        this.logger.debug(`${this.name} Timeout`)
+        void this.emit('timeout', undefined)
+      }, clamp(this.duration, { min: 0, max: Infinity }))
     } else {
       this.timer.refresh()
     }
