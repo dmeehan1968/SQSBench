@@ -155,7 +155,7 @@ export class SqsBenchDashboard extends Construct {
         period,
       }),
       new GraphWidget({
-        title: 'Messages Received',
+        title: 'Receive Message Requests',
         width,
         height,
         left: tests.map(test => test.queue.metricNumberOfMessagesReceived({
