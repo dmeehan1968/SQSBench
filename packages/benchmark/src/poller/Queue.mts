@@ -33,9 +33,7 @@ export class Queue extends EventEmitter<QueueEvents> {
   async poll(getParams: () => PollParams) {
 
     this.isPolling = true
-    const startTime = Date.now()
-    let peakRate = 0
-    const rateHistory: { time: number, rate: number }[] = []
+    let shortBatchCount = 0
 
     while (this.isPolling) {
 
@@ -52,31 +50,26 @@ export class Queue extends EventEmitter<QueueEvents> {
         ...params,
       }), { abortSignal: this.abortController.signal })
 
-      const now = Date.now()
+      if ((res.Messages?.length ?? 0) < (params.MaxNumberOfMessages ?? 10)) {
+        shortBatchCount++
+      } else {
+        shortBatchCount = 0
+      }
 
       if (!this.abortController.signal.aborted && res.Messages && res.Messages.length > 0) {
 
         await this.emit('messages', [...res.Messages])
 
-        rateHistory.push({ time: now, rate: res.Messages.length })
-
-        const elapsedTime = (now - startTime) / 1000
-        this.logger.debug(`Received ${res.Messages.length} messages @ ${elapsedTime}s`)
-
       }
 
-      while (rateHistory[0] && rateHistory[0].time < now - 1000) {
-        rateHistory.shift()
+      if (shortBatchCount > 3) {
+        this.logger.info('Stopping polling, too many short batches')
+        this.stop()
       }
 
-      const currentRate = rateHistory.reduce((acc, { rate }) => acc + rate, 0)
-
-      peakRate = currentRate > peakRate ? currentRate : peakRate
-
-      this.logger.debug(`rate: ${peakRate} -> ${currentRate} (${rateHistory.length} samples)`)
-      if (!this.isPolling || (res.Messages?.length ?? 0) < (MinNumberOfMessages ?? 1) || currentRate < peakRate * 0.1) {
-        this.logger.info('Stopping polling, insufficient messages', { currentRate, peakRate })
-        break
+      if ((res.Messages?.length ?? 0) < (MinNumberOfMessages ?? 1)) {
+        this.logger.info('Stopping polling, insufficient messages')
+        this.stop()
       }
 
     }
