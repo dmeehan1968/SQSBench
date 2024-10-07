@@ -169,9 +169,23 @@ may well want to run more than one test for each poller type so you can see the 
 
 NB: The producer is only enabled if there is at least one test enabled.
 
+IMPORTANT: 1 minute / consumerPerMessageDuration * maxConcurrency is the theoretical maximum message rate that a
+poller can handle.  If you exceed this rate, you will start to see backlogs and increased latency.  However, there is 
+overhead in the polling process which will reduce the effective message rate that can be handled.  The Lambda pollers
+are designed to be more efficient at lower message rates, but will start to struggle as the message rate increases.
+The most practical way to increase capacity is to increase concurrency.
+
 ```typescript
 tests: [
-  { enabled: true, batchSize: 10, batchWindow: Duration.seconds(0), pollerType: PollerType.Lambda, maxSessionDuration: Duration.seconds(60), maxConcurrency: 2 },
+  { 
+    enabled: true,
+    batchSize: 10,
+    batchWindow: Duration.seconds(0), 
+    pollerType: PollerType.Lambda, 
+    maxSessionDuration: Duration.seconds(60), 
+    maxConcurrency: 2,
+    invocationType: InvocationType.REQUEST_RESPONSE,
+  },
 //...
 ]
 ```
@@ -188,6 +202,11 @@ that the batch is filled, depending on the poller type.
 
 The maximum time to wait for the batch to be filled.  If the batch is not filled within this time, the consumer will
 be invoked with the messages that have been received.
+
+For Lambda pollers, the polling may be terminated if insufficient messages are received, which prevents the poller
+from continuing to poll for messages when there is a low message rate.  As the batch window adds to the latency of
+message delivery, you will want to choose a value that minimises consumer invocations whilst not exceeding your
+intended latency.
 
 #### pollerType
 
