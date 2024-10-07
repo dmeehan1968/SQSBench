@@ -162,7 +162,7 @@ export class SqsTest extends Construct {
         this.poller = new NodejsFunction(this, 'Poller', {
           entry: new URL('./poller/handler.mts', import.meta.url).pathname,
           // allow polling time + time for the consumer to run its final batch
-          timeout: props.maxSessionDuration.plus(Duration.seconds(Math.ceil(((50 * props.batchSize) + 3000) / 1000))),
+          timeout: props.maxSessionDuration.plus(Duration.seconds(Math.ceil((((props.perMessageDuration?.toMilliseconds() ?? 50) * props.batchSize) + 3000) / 1000))),
           bundling: { nodeModules: [ 'zod' ]},
           memorySize: 128,
         })
