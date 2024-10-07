@@ -20,8 +20,12 @@ export function createHandler({
       log.highResMetrics()
       log.messagesReceived(records.length)
 
+      // calculate latency before processing, or it'll be distorted by synchronous processing time
+      records.map(record => log.latency(SqsRecordWithPayloadSchema.parse(record).body.sendAt ?? new Date()))
+
       return await processBatchItems(records, record => {
-        return processRecord(SqsRecordWithPayloadSchema.parse(record).body)
+        const payload = SqsRecordWithPayloadSchema.parse(record).body
+        return processRecord(payload)
       })
 
     } catch (error) {

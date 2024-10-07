@@ -277,6 +277,19 @@ export class SqsTest extends Construct {
     })
   }
 
+  metricConsumerLatency({ period = Duration.minutes(1), label = 'Latency', statistic = Statistic.Average }: { period?: Duration, label?: string, statistic?: Statistic } = {}): IMetric {
+    return new Metric({
+      label: [Fqn(this, { allowedSpecialCharacters: '-' }), label].join(' '),
+      namespace: this.consumer.metricsNamespace,
+      metricName: 'Latency',
+      dimensionsMap: {
+        service: this.consumer.functionName,
+      },
+      statistic,
+      period,
+    })
+  }
+
   metricSqsCost({ period = Duration.minutes(1), label = 'SQS Cost' }: { period?: Duration, label?: string } = {}): IMetric {
     return new SqsCostMetric(this.queue, { period, label })
   }

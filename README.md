@@ -193,6 +193,17 @@ tests: [
 
 Whether the test is enabled or not.  If you want to disable a test, set this to false.
 
+#### pollerType
+
+The type of poller to use.  The options are:
+
+- Lambda - A Lambda function that polls the queue for messages.  A simplistic implementation is provided that uses
+  a single polling loop but with one or more concurrent consumers up to the maxConcurrency setting.  
+  If throttled, the poller will not be requesting messages and a backlog can start to form.  The poller continues
+  to poll until an empty receive, up to the maxSessionDuration.
+- Pipe - An EventBridge Pipe that sends messages to the consumer
+- EventSource - An Event Source Mapping that sends messages to a Lambda function
+
 #### batchSize
 
 The maximum number of messages to send to the consumer in each invocation.  This is a maximum, and there is no guarantee
@@ -203,21 +214,16 @@ that the batch is filled, depending on the poller type.
 The maximum time to wait for the batch to be filled.  If the batch is not filled within this time, the consumer will
 be invoked with the messages that have been received.
 
+For all poller type, the batch window defines the maximum latency of message delivery.  If the batch size
+is satisfied first, then the consumer will be invoked earlier.  Note that for Pipe and ESM pollers, there are multiple
+pollers active at any time, and their batch windows aren't synchronised, so you may receive messages from different
+pollers at different times, depending on how the batching parameters are satisfied.  The Lambda poller only has a
+single poller, so the batch window is more deterministic.
+
 For Lambda pollers, the polling may be terminated if insufficient messages are received, which prevents the poller
 from continuing to poll for messages when there is a low message rate.  As the batch window adds to the latency of
 message delivery, you will want to choose a value that minimises consumer invocations whilst not exceeding your
 intended latency.
-
-#### pollerType
-
-The type of poller to use.  The options are:
-
-- Lambda - A Lambda function that polls the queue for messages.  A simplistic implementation is provided that uses
-  a single polling loop but with one or more concurrent consumers up to the maxConcurrency setting.  
-  If throttled, the poller will not be requesting messages and a backlog can start to form.  The poller continues 
-  to poll until an empty receive, up to the maxSessionDuration.
-- Pipe - An EventBridge Pipe that sends messages to the consumer
-- EventSource - An Event Source Mapping that sends messages to a Lambda function
 
 #### maxSessionDuration
 
@@ -295,6 +301,12 @@ The number of messages visible in the queue during the period (messages waiting 
 
 The age of the oldest message in the queue during the period.
 
+### Delivery Latency
+
+The time taken for the message to be delivered to the consumer.  This is the time between when the message was 
+scheduled to be visible in the queue and the time the consumer was invoked.  The queues own 'Average Age of Oldest
+Message' also includes the pre-visibility scheduling by the producer which distorts the true delivery latency.
+
 ### Messages Received
 
 The number of messages received by the queue during the period.
@@ -322,7 +334,9 @@ redundant pollers to age out.
 
 Event Source Mapping works similarly to Pipes but without the ultimate in scaling, and has the advantage that you can
 constrain the concurrency to reduce the overhead at lower message rates.  The downside is that hobbles the scaling
-ability and therefore bursts/increases in traffic can lead to backlogs, thus increasing latency.
+ability and therefore bursts/increases in traffic can lead to backlogs, thus increasing latency.  An Event Source
+with minimum concurrency can work out to be the most cost effective choice for very low message rates, but there
+isn't much in it compared to a Lambda poller, although ESM retains the benefit of low latency delivery.
 
 The Lambda poller is somewhat simplistic, and trades latency for cost.  You need to be comfortable with >1 minute
 latency on message processing.  The cost is more predictable and scales well through lower message rates, but is

@@ -4,7 +4,7 @@ import { ConsumerEnvironment } from "./consumerEnvironment.mjs"
 import pLimit from "p-limit-esm"
 import { nodeRelativeTimeout } from "./nodeRelativeTimeout.mjs"
 import { Environment } from "./environment.mjs"
-import { Duration } from "@sqsbench/helpers"
+import { clamp, Duration } from "@sqsbench/helpers"
 import { processBatchItems } from "./processBatchItems.mjs"
 import { createHandler } from "./createHandler.mjs"
 import { Context } from "aws-lambda"
@@ -34,6 +34,11 @@ const _handler = createHandler({
       MetricUnit.Count,
       count,
       highResMetrics ? MetricResolution.High : MetricResolution.Standard,
+    ),
+    latency: sentAt => metrics.addMetric(
+      'Latency',
+      MetricUnit.Milliseconds,
+      clamp(Date.now() - sentAt.getTime(), { max: Infinity }),
     ),
     error: error => logger.error('Error', { error }),
   },

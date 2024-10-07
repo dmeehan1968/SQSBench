@@ -74,7 +74,8 @@ export async function emitterController(
           delay: MessageDelay.milliseconds(timeToSend.getTime() - Date.now()),
           body: {
             index: (chunkIndex * batchSize) + index,
-            delay
+            delay,
+            sendAt: timeToSend.toISOString()
           },
         }
       }))

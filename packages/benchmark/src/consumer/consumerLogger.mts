@@ -5,5 +5,6 @@ export interface ConsumerLogger {
   perMessageDuration: () => void
   highResMetrics: () => void
   messagesReceived: (count: number) => void
+  latency: (sentAt: Date) => void
   error: (error: unknown) => void
 }

@@ -145,6 +145,16 @@ export class SqsBenchDashboard extends Construct {
         period,
       }),
       new GraphWidget({
+        title: 'Delivery Latency',
+        width,
+        height,
+        left: tests.map(test => test.metricConsumerLatency({
+          period,
+          statistic: Statistic.Average,
+        })),
+        period,
+      }),
+      new GraphWidget({
         title: 'Messages Received',
         width,
         height,
