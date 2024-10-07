@@ -52,7 +52,8 @@ const _handler = createHandler({
  */
 export const handler = async (event: unknown, context: Context) => {
   // @ts-ignore
-  using _ = {
+  // noinspection JSUnusedLocalSymbols
+  using logOnExit = {
     [Symbol.dispose]: () => {
       logger.info('Done')
       metrics.publishStoredMetrics()
