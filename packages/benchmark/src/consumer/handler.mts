@@ -51,6 +51,7 @@ const _handler = createHandler({
  * are flushed after the inner handler has completed
  */
 export const handler = async (event: unknown, context: Context) => {
+  // @ts-ignore
   using _ = {
     [Symbol.dispose]: () => {
       logger.info('Done')
