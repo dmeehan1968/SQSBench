@@ -62,7 +62,7 @@ export class Queue extends EventEmitter<QueueEvents> {
 
       }
 
-      if (shortBatchCount > 3) {
+      if (shortBatchCount > 5) {
         this.logger.info('Stopping polling, too many short batches')
         this.stop()
       }
