@@ -41,6 +41,7 @@ const _handler = createHandler({
       clamp(Date.now() - sentAt.getTime(), { max: Infinity }),
     ),
     error: error => logger.error('Error', { error }),
+    flushMetrics: () => metrics.publishStoredMetrics(),
   },
   processBatchItems,
   processRecord: synchronousDelay,

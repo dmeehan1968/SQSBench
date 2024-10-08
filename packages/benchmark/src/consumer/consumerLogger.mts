@@ -7,4 +7,5 @@ export interface ConsumerLogger {
   messagesReceived: (count: number) => void
   latency: (sentAt: Date) => void
   error: (error: unknown) => void
+  flushMetrics: () => void
 }
