@@ -34,11 +34,11 @@ export class SqsPollerController {
     // this.logger.info('Event', { event: unknown }))
     const props = PollerPropsSchema.parse(unknown)
 
-    const consumer = new Function(this.lambda, props.functionArn, this.logger, props.invocationType)
-    const queue = new Queue(this.sqs, props.queueUrl, this.logger)
+    using consumer = new Function(this.lambda, props.functionArn, this.logger, props.invocationType)
+    using queue = new Queue(this.sqs, props.queueUrl, this.logger)
     using sessionTimer = new Timer('Session', clamp(props.maxSessionDuration * 1000, { max: Math.max(0, context.getRemainingTimeInMillis() - 10_000) }), this.logger)
     using batchTimer = new Timer('Batch', Math.max(props.batchWindow * 1000, 1000), this.logger)
-    const batch = new Batch<Message>(props.batchSize, this.logger)
+    using batch = new Batch<Message>(props.batchSize, this.logger)
     const concurrencyController = pLimit(props.maxConcurrency)
 
     const invokeConsumer = async () => {

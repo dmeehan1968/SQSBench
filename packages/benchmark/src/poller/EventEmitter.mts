@@ -48,4 +48,8 @@ export class EventEmitter<Events extends Record<string, any>> implements IEventE
     results.filter(result => result.status === 'rejected').forEach(result => this.emit('error', result.reason))
     return
   }
+
+  [Symbol.dispose]() {
+    this.subscribers.clear()
+  }
 }
