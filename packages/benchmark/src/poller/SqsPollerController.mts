@@ -61,7 +61,6 @@ export class SqsPollerController {
 
     queue
       .on('messages', async (messages) => {
-        this.logger.info(`Received ${messages.length} messages`)
         await batch.push(messages)
       })
       .on('stopped', async () => {
