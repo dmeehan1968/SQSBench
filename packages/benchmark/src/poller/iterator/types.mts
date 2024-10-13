@@ -13,6 +13,6 @@ export interface Consuming<T> {
   consume(source: AsyncIterable<T>): Promise<void>
 }
 
-export interface Transforming<TIn, TOut> extends Consuming<TIn>, Producing<TOut> {
-  transform: (value: TIn) => TOut,
+export interface Transforming<TIn, TOut, TAcc = TOut> extends Consuming<TIn>, Producing<TOut> {
+  transform: (acc: TAcc, cur: TIn) => TAcc,
 }

@@ -2,7 +2,7 @@ import { LambdaClient } from '@aws-sdk/client-lambda'
 import { Message, SQSClient } from '@aws-sdk/client-sqs'
 import { SqsMessageProducer } from './SqsMessageProducer.mjs'
 import { LambdaConsumer } from './LambdaConsumer.mjs'
-import { Batcher } from './Batcher.mjs'
+import { ArrayBatcher } from './ArrayBatcher.mjs'
 import { Acquired } from './types.mjs'
 import { Pipeline } from './Pipeline.mjs'
 
@@ -26,7 +26,10 @@ class Poller {
     const target = new LambdaConsumer(this.lambda, () => ({
       FunctionName: 'my-function',
     }))
-    const batcher = new Batcher<Acquired<Message[]>, Message>((value: Acquired<Message[]>) => value.data, 100)
+    const batcher = new ArrayBatcher<Acquired<Message[]>, Message>(
+      (acc, cur) => [...acc, ...cur.data],
+      100
+    )
 
     setTimeout(() => abort.abort(), 10000)
 
