@@ -23,11 +23,9 @@ export class SqsMessageProducer implements Producing<Acquired<Message[]>> {
         },
       )
 
-      if (res.Messages && res.Messages.length) {
-        yield {
-          data: res.Messages,
-          acquiredIn: Duration.milliseconds(Date.now() - start),
-        }
+      yield {
+        data: res.Messages ?? [],
+        acquiredIn: Duration.milliseconds(Date.now() - start),
       }
 
     }
