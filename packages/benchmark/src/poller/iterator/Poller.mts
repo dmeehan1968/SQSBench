@@ -5,6 +5,7 @@ import { LambdaConsumer } from './LambdaConsumer.mjs'
 import { ArrayBatcher } from './ArrayBatcher.mjs'
 import { Acquired } from './types.mjs'
 import { Pipeline } from './Pipeline.mjs'
+import { Duration } from '@sqsbench/helpers'
 
 const sqs = new SQSClient()
 const lambda = new LambdaClient()
@@ -28,7 +29,8 @@ class Poller {
     }))
     const batcher = new ArrayBatcher<Acquired<Message[]>, Message>(
       (acc, cur) => [...acc, ...cur.data],
-      100
+      100,
+      Duration.seconds(60),
     )
 
     setTimeout(() => abort.abort(), 10000)
