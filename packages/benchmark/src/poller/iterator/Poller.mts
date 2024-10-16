@@ -45,18 +45,18 @@ class Poller {
     // Transformer - converts SQS messages to Lambda invocation records (SQSEvent)
     const sqsRecordTransformer = new SqsMessagesToEventTransformer(this.params.queueArn)
 
-    // Consumer - invokes the Lambda function with the SQSEvent records
+    // Consumer - invokes the consumer Lambda function with the SQSEvent records
     const consumer = new LambdaInvoker(this.lambda, () => ({
       FunctionName: this.params.functionArn,
       InvocationType: this.params.invocationType,
     }))
 
-    // Deleter - removes messages from the queue that were successfully processed
-    const deleter = new SqsBatchItemFailureConsumer(this.sqs, this.params.queueUrl)
+    // messageDeleter - removes messages from the queue that were successfully processed
+    const messageDeleter = new SqsBatchItemFailureConsumer(this.sqs, this.params.queueUrl)
 
-    setTimeout(() => abort.abort(), clamp(this.params.maxSessionDuration * 1000, { min: 2_000, max: 60_000 }))
+    using _sessionTimeout = setTimeout(() => abort.abort(), clamp(this.params.maxSessionDuration * 1000, { min: 2_000, max: 60_000 }))
 
-    await new Pipeline(source, [monitor, batcher, sqsRecordTransformer, consumer], deleter).process()
+    await new Pipeline(source, [monitor, batcher, sqsRecordTransformer, consumer], messageDeleter).process()
 
   }
 }

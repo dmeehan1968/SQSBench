@@ -1,12 +1,15 @@
 import { Consuming, Producing } from './types.mjs'
 import { InvokeCommand, InvokeCommandInput, LambdaClient } from '@aws-sdk/client-lambda'
+import { z } from 'zod'
 
-export interface LambdaInvocationResult<T, U> {
-  req: T
-  res: U | null
-}
+export const LambdaInvocationResultSchema = z.object({
+  req: z.unknown(),
+  res: z.unknown().nullable(),
+}).required()
 
-export class LambdaInvoker implements Consuming<any>, Producing<any> {
+export type LambdaInvocationResult = z.infer<typeof LambdaInvocationResultSchema>
+
+export class LambdaInvoker implements Consuming<any>, Producing<LambdaInvocationResult> {
 
   private source: AsyncIterable<any> | undefined
   private completions = new Set<() => void>()
@@ -37,10 +40,10 @@ export class LambdaInvoker implements Consuming<any>, Producing<any> {
         }))
 
         const responsePayload = res.Payload?.transformToString() ?? ''
-        yield {
+        yield LambdaInvocationResultSchema.parse({
           req: requestPayload,
           res: responsePayload.length ? JSON.parse(responsePayload) : null
-        }
+        })
       }
 
     } finally {

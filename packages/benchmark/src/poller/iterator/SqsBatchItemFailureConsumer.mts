@@ -1,17 +1,39 @@
 import { Consuming } from './types.mjs'
-import { LambdaInvocationResult } from './LambdaInvoker.mjs'
+import { LambdaInvocationResult, LambdaInvocationResultSchema } from './LambdaInvoker.mjs'
 import { DeleteMessageBatchCommand, SQSClient } from '@aws-sdk/client-sqs'
-import { SQSBatchResponse, SQSEvent } from 'aws-lambda'
+import { z } from 'zod'
+import { SQSRecordSchema } from '@sqsbench/schema'
 
-export class SqsBatchItemFailureConsumer implements Consuming<LambdaInvocationResult<SQSEvent, SQSBatchResponse>> {
+const SqsBatchItemFailureSchema = z.object({
+  itemIdentifier: z.string(),
+})
+
+const SqsBatchResponseSchema = z.object({
+  batchItemFailures: SqsBatchItemFailureSchema.array(),
+})
+
+const SQSEventSchema = z.object({
+  Records: SQSRecordSchema.array(),
+})
+
+const SqsBatchInvocationSchema = LambdaInvocationResultSchema.extend({
+  req: SQSEventSchema,
+  res: SqsBatchResponseSchema.nullable(),
+})
+
+export class SqsBatchItemFailureConsumer implements Consuming<LambdaInvocationResult> {
   constructor(
     private readonly client: SQSClient,
     private readonly queueUrl: string,
   ) {
   }
 
-  async consume(source: AsyncIterable<LambdaInvocationResult<SQSEvent, SQSBatchResponse>>) {
-    for await (const { req: event, res: batchResponse } of source) {
+  async consume(source: AsyncIterable<LambdaInvocationResult>) {
+
+    for await (const invocation of source) {
+
+      const { req: event, res: batchResponse } = SqsBatchInvocationSchema.parse(invocation)
+
       const failures = new Map<string, undefined>()
       batchResponse && batchResponse.batchItemFailures.forEach(item => failures.set(item.itemIdentifier, undefined))
       const toDelete = event.Records
