@@ -12,7 +12,7 @@ describe('ArrayBatcher', () => {
   beforeEach(() => {
     jest.useFakeTimers()
     source = mock<Producing<number>>()
-    sut = new ArrayBatcher((acc, cur) => ([...acc, cur]), 2, batchWindow)
+    sut = new ArrayBatcher(cur => [cur], 2, batchWindow)
   })
 
   afterEach(() => {

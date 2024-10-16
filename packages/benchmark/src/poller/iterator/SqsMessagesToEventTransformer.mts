@@ -23,8 +23,9 @@ export class SqsMessagesToEventTransformer implements Transforming<Message[], SQ
       }
 
       for await (const messages of this.source) {
-        yield this.transform({ Records: [] }, messages)
+        yield this.transform(messages)
       }
+
     } finally {
       for (const completion of this.completions) {
         completion()
@@ -36,7 +37,7 @@ export class SqsMessagesToEventTransformer implements Transforming<Message[], SQ
     return this.generator()
   }
 
-  transform(_: SQSEvent, messages: Message[]): { Records: SQSRecord[] } {
+  transform(messages: Message[]): { Records: SQSRecord[] } {
     return {
       Records: messages.map(message => ({
         messageId: message.MessageId!,

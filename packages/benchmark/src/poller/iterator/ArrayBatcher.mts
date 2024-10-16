@@ -13,7 +13,7 @@ export class ArrayBatcher<TIn, TOut = TIn> implements Transforming<TIn, TOut[]> 
   private readonly completions = new Set<() => void>
 
   constructor(
-    readonly transform: (acc: TOut[], current: TIn) => TOut[],
+    readonly transform: (current: TIn) => TOut[],
     private readonly batchSize: number,
     private readonly batchWindow: Duration,
   ) {
@@ -59,7 +59,7 @@ export class ArrayBatcher<TIn, TOut = TIn> implements Transforming<TIn, TOut[]> 
           case 'next':
             done = result.done ?? false
             if (!done) {
-              this.accumulator = this.transform(this.accumulator, result.value)
+              this.accumulator.push(...this.transform(result.value))
             }
 
             while (this.accumulator.length >= this.batchSize) {
