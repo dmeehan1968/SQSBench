@@ -9,9 +9,9 @@ export const LambdaInvocationResultSchema = z.object({
 
 export type LambdaInvocationResult = z.infer<typeof LambdaInvocationResultSchema>
 
-export class LambdaInvoker implements Transforming<any, LambdaInvocationResult> {
+export class LambdaInvoker implements Transforming<unknown, LambdaInvocationResult> {
 
-  private source: AsyncIterable<any> | undefined
+  private source: AsyncIterable<unknown> | undefined
   private completions = new Set<() => void>()
 
   constructor(
@@ -20,7 +20,7 @@ export class LambdaInvoker implements Transforming<any, LambdaInvocationResult> 
   ) {
   }
 
-  async consume(source: AsyncIterable<any>): Promise<void> {
+  async consume(source: AsyncIterable<unknown>): Promise<void> {
     this.source = source
     return new Promise<void>(resolve => this.completions.add(resolve))
   }
@@ -40,10 +40,11 @@ export class LambdaInvoker implements Transforming<any, LambdaInvocationResult> 
         for (const completion of this.completions) {
           completion()
         }
+        this.completions.clear()
     }
   }
 
-  async invoke(requestPayload: any) {
+  async invoke(requestPayload: unknown) {
     const params = this.params()
     const res = await this.client.send(new InvokeCommand({
       Payload: JSON.stringify(requestPayload),
