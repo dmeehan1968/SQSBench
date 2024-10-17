@@ -30,25 +30,30 @@ export class SqsBatchItemFailureConsumer implements Consuming<LambdaInvocationRe
 
   async consume(source: AsyncIterable<LambdaInvocationResult>) {
 
-    for await (const invocation of source) {
+    try {
+      for await (const invocation of source) {
+        const parse = SqsBatchInvocationSchema.parse(invocation)
+        const { req: event, res: batchResponse } = parse
 
-      const { req: event, res: batchResponse } = SqsBatchInvocationSchema.parse(invocation)
+        const failures = new Map<string, undefined>()
+        batchResponse && batchResponse.batchItemFailures.forEach(item => failures.set(item.itemIdentifier, undefined))
+        const toDelete = event.Records
+          .filter(msg => msg.messageId && msg.receiptHandle && !failures.has(msg.messageId))
+          .map((msg, index) => ({
+            Id: index.toString(),
+            ReceiptHandle: msg.receiptHandle,
+          }))
 
-      const failures = new Map<string, undefined>()
-      batchResponse && batchResponse.batchItemFailures.forEach(item => failures.set(item.itemIdentifier, undefined))
-      const toDelete = event.Records
-        .filter(msg => msg.messageId && msg.receiptHandle && !failures.has(msg.messageId))
-        .map((msg, index) => ({
-          Id: index.toString(),
-          ReceiptHandle: msg.receiptHandle,
-        }))
-
-      if (toDelete.length) {
-        await this.client.send(new DeleteMessageBatchCommand({
-          QueueUrl: this.queueUrl,
-          Entries: toDelete,
-        }))
+        if (toDelete.length) {
+          await this.client.send(new DeleteMessageBatchCommand({
+            QueueUrl: this.queueUrl,
+            Entries: toDelete,
+          }))
+        }
       }
+    } catch (error) {
+      console.error('Error consuming SQS batch item failures', error)
+      throw error
     }
   }
 }
