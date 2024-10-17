@@ -1,6 +1,7 @@
 import { Transforming } from './types.mjs'
 import { InvokeCommand, InvokeCommandInput, LambdaClient } from '@aws-sdk/client-lambda'
 import { z } from 'zod'
+import { MultiSourceConsumer } from './MultiSourceConsumer.mjs'
 
 export const LambdaInvocationResultSchema = z.object({
   req: z.unknown(),
@@ -11,37 +12,17 @@ export type LambdaInvocationResult = z.infer<typeof LambdaInvocationResultSchema
 
 export class LambdaInvoker implements Transforming<unknown, LambdaInvocationResult> {
 
-  private source: AsyncIterable<unknown> | undefined
-  private completions = new Set<() => void>()
+  private multiSourceConsumer: MultiSourceConsumer<unknown, LambdaInvocationResult>
 
   constructor(
     private readonly client: LambdaClient,
     private readonly params: () => InvokeCommandInput,
   ) {
+    this.multiSourceConsumer = new MultiSourceConsumer(value => this.invoke(value))
   }
 
   async consume(source: AsyncIterable<unknown>): Promise<void> {
-    this.source = source
-    return new Promise<void>(resolve => this.completions.add(resolve))
-  }
-
-  private async* generator() {
-    try {
-
-      if (!this.source) {
-        throw new Error('No source')
-      }
-
-      for await (const requestPayload of this.source) {
-        yield await this.invoke(requestPayload)
-      }
-
-    } finally {
-        for (const completion of this.completions) {
-          completion()
-        }
-        this.completions.clear()
-    }
+    return this.multiSourceConsumer.consume(source)
   }
 
   async invoke(requestPayload: unknown) {
@@ -59,6 +40,6 @@ export class LambdaInvoker implements Transforming<unknown, LambdaInvocationResu
   }
 
   [Symbol.asyncIterator]() {
-    return this.generator()
+    return this.multiSourceConsumer.generator()
   }
 }

@@ -1,43 +1,26 @@
 import { Transforming } from './types.mjs'
 import { Message } from '@aws-sdk/client-sqs'
-import { SQSEvent, SQSRecord } from 'aws-lambda'
+import { SQSEvent } from 'aws-lambda'
+import { MultiSourceConsumer } from './MultiSourceConsumer.mjs'
 
 export class SqsMessagesToEventTransformer implements Transforming<Message[], SQSEvent> {
 
-  private source: AsyncIterable<Message[]> | undefined
-  private completions = new Set<() => void>()
+  private multiSourceConsumer: MultiSourceConsumer<Message[], SQSEvent>
   private decoder = new TextDecoder('utf-8')
 
   constructor(private readonly queueArn: string) {
+    this.multiSourceConsumer = new MultiSourceConsumer(messages => this.transform(messages))
   }
 
   async consume(source: AsyncIterable<Message[]>): Promise<void> {
-    this.source = source
-    return new Promise<void>(resolve => this.completions.add(resolve))
-  }
-
-  async* generator() {
-    try {
-      if (!this.source) {
-        throw new Error('No source')
-      }
-
-      for await (const messages of this.source) {
-        yield this.transform(messages)
-      }
-
-    } finally {
-      for (const completion of this.completions) {
-        completion()
-      }
-    }
+    return this.multiSourceConsumer.consume(source)
   }
 
   [Symbol.asyncIterator]() {
-    return this.generator()
+    return this.multiSourceConsumer.generator()
   }
 
-  transform(messages: Message[]): { Records: SQSRecord[] } {
+  async transform(messages: Message[]): Promise<SQSEvent> {
     return {
       Records: messages.map(message => ({
         messageId: message.MessageId!,
