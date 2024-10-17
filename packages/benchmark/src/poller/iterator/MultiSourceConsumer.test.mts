@@ -1,7 +1,7 @@
 import { MultiSourceConsumer } from './MultiSourceConsumer.mjs'
 
-async function *asyncGenerator(arr: number[]) {
-  yield *arr
+async function* asyncGenerator(arr: number[]) {
+  yield* arr
 }
 
 describe('MultiSourceConsumer', () => {
