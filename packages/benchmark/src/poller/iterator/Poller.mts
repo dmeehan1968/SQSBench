@@ -1,5 +1,5 @@
 import { LambdaClient } from '@aws-sdk/client-lambda'
-import { Message, SQSClient } from '@aws-sdk/client-sqs'
+import { Message, SQSClient, ChangeMessageVisibilityBatchCommand } from '@aws-sdk/client-sqs'
 import { SqsMessageProducer } from './SqsMessageProducer.mjs'
 import { LambdaInvoker } from './LambdaInvoker.mjs'
 import { ArrayBatcher } from './ArrayBatcher.mjs'
@@ -35,11 +35,26 @@ class Poller {
     // Monitor - tracks the ingest of messages to detect when backlog is cleared
     const monitor = new BacklogMonitor()
 
+    // Return unprocessed messages to the queue
+    const onBatchFinal = async (messages: Message[]) => {
+      while (messages.length) {
+        await this.sqs.send(new ChangeMessageVisibilityBatchCommand({
+          QueueUrl: this.params.queueUrl,
+          Entries: messages.splice(0, 10).map((message, index) => ({
+            Id: index.toString(),
+            ReceiptHandle: message.ReceiptHandle!,
+            VisibilityTimeout: 0,
+          }))
+        }))
+      }
+    }
+
     // Batcher - groups messages into batches for the consumer
     const batcher = new ArrayBatcher<Acquired<Message[]>, Message>(
-      (acc, cur) => [...acc, ...cur.data],
+      batch => batch.data,
       this.params.batchSize,
       Duration.seconds(this.params.batchWindow),
+      onBatchFinal,
     )
 
     // Transformer - converts SQS messages to Lambda invocation records (SQSEvent)

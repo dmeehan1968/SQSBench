@@ -16,6 +16,7 @@ export class ArrayBatcher<TIn, TOut = TIn> implements Transforming<TIn, TOut[]> 
     readonly transform: (current: TIn) => TOut[],
     private readonly batchSize: number,
     private readonly batchWindow: Duration,
+    private readonly onFinal: (items: TOut[]) => Promise<void>,
   ) {
   }
 
@@ -74,13 +75,15 @@ export class ArrayBatcher<TIn, TOut = TIn> implements Transforming<TIn, TOut[]> 
         }
       }
 
+      while (this.accumulator.length) {
+        yield this.accumulator.splice(0, this.batchSize)
+      }
+
     } finally {
 
       batchWindow.stop()
 
-      while (this.accumulator.length) {
-        yield this.accumulator.splice(0, this.batchSize)
-      }
+      await this.onFinal(this.accumulator)
 
       for (const completion of this.completions) {
         completion()
