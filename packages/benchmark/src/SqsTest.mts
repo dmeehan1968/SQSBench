@@ -168,6 +168,7 @@ export class SqsTest extends Construct {
         })
 
         this.queue.grantConsumeMessages(this.poller)
+        this.queue.grant(this.poller, 'sqs:ChangeMessageVisibility')
         this.consumer.grantInvoke(this.poller)
 
         new Rule(this, 'Rule', {

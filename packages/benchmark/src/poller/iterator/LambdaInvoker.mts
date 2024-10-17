@@ -26,10 +26,9 @@ export class LambdaInvoker implements Transforming<unknown, LambdaInvocationResu
   }
 
   async invoke(requestPayload: unknown) {
-    const params = this.params()
     const res = await this.client.send(new InvokeCommand({
       Payload: JSON.stringify(requestPayload),
-      ...params,
+      ...this.params(),
     }))
 
     const responsePayload = res.Payload?.transformToString() ?? ''
