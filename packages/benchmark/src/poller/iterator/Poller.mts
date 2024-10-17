@@ -14,7 +14,7 @@ import { SqsMessagesToEventTransformer } from './SqsMessagesToEventTransformer.m
 const sqs = new SQSClient()
 const lambda = new LambdaClient()
 
-class Poller {
+export class Poller {
   constructor(
     private readonly lambda: LambdaClient,
     private readonly sqs: SQSClient,
@@ -69,10 +69,11 @@ class Poller {
     // messageDeleter - removes messages from the queue that were successfully processed
     const messageDeleter = new SqsBatchItemFailureConsumer(this.sqs, this.params.queueUrl)
 
-    using _sessionTimeout = setTimeout(() => abort.abort(), clamp(this.params.maxSessionDuration * 1000, { min: 2_000, max: 60_000 }))
+    const timeout = setTimeout(() => abort.abort(), clamp(this.params.maxSessionDuration * 1000, { min: 2_000, max: 60_000 }))
 
     await new Pipeline(source, [monitor, batcher, sqsRecordTransformer, consumer], messageDeleter).process()
 
+    clearTimeout(timeout)
   }
 }
 
