@@ -3,6 +3,8 @@ import { LambdaInvocationResult, LambdaInvocationResultSchema } from './LambdaIn
 import { DeleteMessageBatchCommand, SQSClient } from '@aws-sdk/client-sqs'
 import { z } from 'zod'
 import { SQSRecordSchema } from '@sqsbench/schema'
+import { chunkArray } from '@sqsbench/helpers'
+import pLimit from 'p-limit-esm'
 
 const SqsBatchItemFailureSchema = z.object({
   itemIdentifier: z.string(),
@@ -29,12 +31,13 @@ export class SqsBatchItemFailureConsumer implements Consuming<LambdaInvocationRe
   }
 
   async consume(source: AsyncIterable<LambdaInvocationResult>) {
+    const limit = pLimit(50)
 
     try {
       for await (const invocation of source) {
-        console.log('Consuming SQS batch item failures', JSON.stringify(invocation))
         const parse = SqsBatchInvocationSchema.parse(invocation)
         const { req: event, res: batchResponse } = parse
+        console.log('Batch Item Failures', batchResponse)
 
         const failures = new Map<string, undefined>()
         batchResponse && batchResponse.batchItemFailures.forEach(item => failures.set(item.itemIdentifier, undefined))
@@ -46,11 +49,16 @@ export class SqsBatchItemFailureConsumer implements Consuming<LambdaInvocationRe
           }))
 
         if (toDelete.length) {
-          console.log('Deleting', toDelete)
-          await this.client.send(new DeleteMessageBatchCommand({
-            QueueUrl: this.queueUrl,
-            Entries: toDelete,
-          }))
+          const pending = chunkArray(toDelete, 10).map(async chunk => {
+            return limit(async () => {
+              const res = await this.client.send(new DeleteMessageBatchCommand({
+                QueueUrl: this.queueUrl,
+                Entries: chunk,
+              }))
+              console.log('Delete', res)
+            })
+          })
+          await Promise.allSettled(pending)
         }
       }
     } catch (error) {
