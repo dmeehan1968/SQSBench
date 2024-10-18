@@ -32,6 +32,7 @@ export class SqsBatchItemFailureConsumer implements Consuming<LambdaInvocationRe
 
     try {
       for await (const invocation of source) {
+        console.log('Consuming SQS batch item failures', JSON.stringify(invocation))
         const parse = SqsBatchInvocationSchema.parse(invocation)
         const { req: event, res: batchResponse } = parse
 
@@ -45,6 +46,7 @@ export class SqsBatchItemFailureConsumer implements Consuming<LambdaInvocationRe
           }))
 
         if (toDelete.length) {
+          console.log('Deleting', toDelete)
           await this.client.send(new DeleteMessageBatchCommand({
             QueueUrl: this.queueUrl,
             Entries: toDelete,

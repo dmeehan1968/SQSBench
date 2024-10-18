@@ -32,10 +32,14 @@ export class LambdaInvoker implements Transforming<unknown, LambdaInvocationResu
     }))
 
     const responsePayload = res.Payload?.transformToString() ?? ''
-    return LambdaInvocationResultSchema.parse({
+    const output = LambdaInvocationResultSchema.parse({
       req: requestPayload,
       res: responsePayload.length ? JSON.parse(responsePayload) : null
     })
+
+    console.log('Invoked', output)
+
+    return output
   }
 
   [Symbol.asyncIterator]() {

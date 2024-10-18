@@ -22,6 +22,7 @@ export class BacklogMonitor<T> implements Consuming<Acquired<T[]>>, Producing<Ac
 
         // stop on first empty receive
         if (batch.data.length === 0) {
+          console.log('Empty Receive')
           break
         }
 

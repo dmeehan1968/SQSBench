@@ -1,5 +1,10 @@
 import { LambdaClient } from '@aws-sdk/client-lambda'
-import { Message, SQSClient, ChangeMessageVisibilityBatchCommand } from '@aws-sdk/client-sqs'
+import {
+  ChangeMessageVisibilityBatchCommand,
+  Message,
+  ReceiveMessageCommandInput,
+  SQSClient,
+} from '@aws-sdk/client-sqs'
 import { SqsMessageProducer } from './SqsMessageProducer.mjs'
 import { LambdaInvoker } from './LambdaInvoker.mjs'
 import { ArrayBatcher } from './ArrayBatcher.mjs'
@@ -7,12 +12,9 @@ import { Acquired } from './types.mjs'
 import { Pipeline } from './Pipeline.mjs'
 import { clamp, Duration } from '@sqsbench/helpers'
 import { BacklogMonitor } from './BacklogMonitor.mjs'
-import { PollerProps, PollerPropsSchema } from '@sqsbench/schema'
+import { PollerProps } from '@sqsbench/schema'
 import { SqsBatchItemFailureConsumer } from './SqsBatchItemFailureConsumer.mjs'
 import { SqsMessagesToEventTransformer } from './SqsMessagesToEventTransformer.mjs'
-
-const sqs = new SQSClient()
-const lambda = new LambdaClient()
 
 export class Poller {
   constructor(
@@ -30,7 +32,9 @@ export class Poller {
       QueueUrl: this.params.queueUrl,
       MaxNumberOfMessages: 10,
       WaitTimeSeconds: 1,
-    }))
+      MessageAttributeNames: ['All'],
+      MessageSystemAttributeNames: ['All'],
+    } satisfies ReceiveMessageCommandInput))
 
     // Monitor - tracks the ingest of messages to detect when backlog is cleared
     const monitor = new BacklogMonitor()
@@ -75,13 +79,6 @@ export class Poller {
 
     clearTimeout(timeout)
   }
-}
-
-export const handler = async (unknown: unknown) => {
-  const params = PollerPropsSchema.parse(unknown)
-
-  await new Poller(lambda, sqs, params)
-    .poll()
 }
 
 

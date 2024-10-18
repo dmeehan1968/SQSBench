@@ -23,6 +23,8 @@ export class SqsMessageProducer implements Producing<Acquired<Message[]>> {
         },
       )
 
+      console.log('Receive', res)
+
       yield {
         data: res.Messages ?? [],
         acquiredIn: Duration.milliseconds(Date.now() - start),
