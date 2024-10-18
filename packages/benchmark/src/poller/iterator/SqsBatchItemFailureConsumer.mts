@@ -50,13 +50,11 @@ export class SqsBatchItemFailureConsumer implements Consuming<LambdaInvocationRe
 
         if (toDelete.length) {
           const pending = chunkArray(toDelete, 10).map(async chunk => {
-            return limit(async () => {
-              const res = await this.client.send(new DeleteMessageBatchCommand({
-                QueueUrl: this.queueUrl,
-                Entries: chunk,
-              }))
-              console.log('Delete', res)
-            })
+            const res = await limit(() => this.client.send(new DeleteMessageBatchCommand({
+              QueueUrl: this.queueUrl,
+              Entries: chunk,
+            })))
+            console.log('Delete', res)
           })
           await Promise.allSettled(pending)
         }
@@ -67,3 +65,4 @@ export class SqsBatchItemFailureConsumer implements Consuming<LambdaInvocationRe
     }
   }
 }
+
