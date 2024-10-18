@@ -7,10 +7,8 @@ import middy from '@middy/core'
 import { captureLambdaHandler } from '@aws-lambda-powertools/tracer/middleware'
 
 const tracer = new Tracer()
-const [ sqs, lambda ] = await Promise.all([
-  (async () => tracer.captureAWSv3Client(new SQSClient()))(),
-  (async () => tracer.captureAWSv3Client(new LambdaClient()))(),
-])
+const sqs = tracer.captureAWSv3Client(new SQSClient())
+const lambda = tracer.captureAWSv3Client(new LambdaClient())
 
 export const handler = middy()
   .use(captureLambdaHandler(tracer))
