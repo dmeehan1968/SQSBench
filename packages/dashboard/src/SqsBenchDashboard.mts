@@ -46,16 +46,25 @@ export class SqsBenchDashboard extends Construct {
       })
     }
 
+    function getMessageRateMetric(period: Duration) {
+      return tests
+        .find(test => test.enabled)?.queue.metricNumberOfMessagesSent({ period, label: 'Message Rate', statistic: Statistic.Sum })
+        ?? new Metric({
+          metricName: 'MessageRatePlaceholder',
+          namespace: 'MessageRatePlaceholder',
+          dimensionsMap: {},
+          period,
+          statistic: Statistic.Sum,
+        })
+    }
+
     dashboard.addWidgets(
       new GraphWidget({
         title: 'Total Cost Per Period',
         width: 24,
         height: 16,
         left: tests.map(test => test.metricTotalCost({ period })),
-        right: [
-          // use the first test queue as a proxy for the producer
-          tests[0].queue.metricNumberOfMessagesSent({ period, label: 'Message Rate', statistic: Statistic.Sum }),
-        ],
+        right: [getMessageRateMetric(period)],
         period,
       }),
       new GraphWidget({
@@ -80,11 +89,7 @@ export class SqsBenchDashboard extends Construct {
               label: 'Messages Rate (minute)',
               expression: `${rate} / ${dutyCyclePerHour} / 60`,
               usingMetrics: {
-                [rate]: test.queue.metricNumberOfMessagesSent({
-                  period: Duration.hours(1),
-                  label: 'Message Rate',
-                  statistic: Statistic.Sum,
-                }),
+                [rate]: getMessageRateMetric(Duration.hours(1)),
               },
             })
           })(),
@@ -96,10 +101,7 @@ export class SqsBenchDashboard extends Construct {
         width,
         height,
         left: tests.map(test => test.metricConsumerCost({ period })),
-        right: [
-          // use the first test queue as a proxy for the producer
-          tests[0].queue.metricNumberOfMessagesSent({ period, label: 'Message Rate', statistic: Statistic.Sum }),
-        ],
+        right: [getMessageRateMetric(period)],
         period,
       }),
       new GraphWidget({
@@ -118,10 +120,7 @@ export class SqsBenchDashboard extends Construct {
             },
           })
         }),
-        right: [
-          // use the first test queue as a proxy for the producer
-          tests[0].queue.metricNumberOfMessagesSent({ period, label: 'Message Rate', statistic: Statistic.Sum }),
-        ],
+        right: [getMessageRateMetric(period)],
         period,
       }),
       new GraphWidget({
