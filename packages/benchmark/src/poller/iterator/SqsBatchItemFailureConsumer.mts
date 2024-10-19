@@ -39,10 +39,10 @@ export class SqsBatchItemFailureConsumer implements Consuming<LambdaInvocationRe
         const { req: event, res: batchResponse } = parse
         console.log('Batch Item Failures', batchResponse)
 
-        const failures = new Map<string, undefined>()
-        batchResponse && batchResponse.batchItemFailures.forEach(item => failures.set(item.itemIdentifier, undefined))
+        const failedIdMap = new Map(batchResponse?.batchItemFailures.map(({ itemIdentifier }) => [itemIdentifier, undefined]))
+
         const toDelete = event.Records
-          .filter(msg => msg.messageId && msg.receiptHandle && !failures.has(msg.messageId))
+          .filter(msg => msg.messageId && msg.receiptHandle && !failedIdMap.has(msg.messageId))
           .map((msg, index) => ({
             Id: index.toString(),
             ReceiptHandle: msg.receiptHandle,
