@@ -2,24 +2,23 @@ import { mock, mockFn } from 'jest-mock-extended'
 import { Producing } from './types.mjs'
 import { ArrayBatcher } from './ArrayBatcher.mjs'
 import { Duration } from '@sqsbench/helpers'
-import MockedFn = jest.MockedFn
 
 describe('ArrayBatcher', () => {
 
   let sut: ArrayBatcher<number>
   let source: Producing<number>
   const batchWindow = Duration.seconds(1)
-  let onFinal: MockedFn<any>
+  let onFinal = mockFn()
 
   beforeEach(() => {
     jest.useFakeTimers()
     source = mock<Producing<number>>()
-    onFinal = mockFn()
     sut = new ArrayBatcher(cur => [cur], 2, batchWindow, onFinal)
   })
 
   afterEach(() => {
     jest.useRealTimers()
+    jest.resetAllMocks()
   })
 
   it('should batch', async () => {
