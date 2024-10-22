@@ -26,6 +26,11 @@ export class BacklogMonitor<T> implements Consuming<Acquired<T[]>>, Producing<Ac
           break
         }
 
+        // if (batch.data.length < 5 && batch.acquiredIn.toMilliseconds() > 1000) {
+        //   console.log('Slow Receive', batch)
+        //   break
+        // }
+
         yield batch
       }
 
