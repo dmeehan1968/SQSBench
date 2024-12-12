@@ -88,19 +88,22 @@ export class SqsTest extends Construct {
 
     this.enabled = props.enabled ?? false
 
-    // Visibility timeout should be 6 times the batch window (or use the default)
-    const visibilityTimeout = props.batchWindow && props.batchWindow.toSeconds() > 0 ? Duration.seconds(props.batchWindow.toSeconds() * 6) : undefined
-
-    this.queue = new Queue(this, 'Default', {
-      visibilityTimeout,
-      // deadLetterQueue: { maxReceiveCount: 3 },
-    })
-
     const perMessageDuration = props.perMessageDuration ?? Duration.millis(50)
     const timeout = Duration.seconds(Math.ceil((perMessageDuration.toMilliseconds() * props.batchSize) / 1000) + 3)
     if (timeout.toSeconds() > 900) {
       throw new Error('Per Message Duration * Batch Size cannot exceed 897 seconds')
     }
+
+    // Visibility timeout should be 6 times the batch window, and must be at least the timeout value
+    let visibilityTimeout = props.batchWindow && props.batchWindow.toSeconds() > 0 ? Duration.seconds(props.batchWindow.toSeconds() * 6) : undefined
+    if (timeout.toSeconds() > (visibilityTimeout?.toSeconds() ?? 0)) {
+      visibilityTimeout = timeout
+    }
+
+    this.queue = new Queue(this, 'Default', {
+      visibilityTimeout,
+      // deadLetterQueue: { maxReceiveCount: 3 },
+    })
 
     this.supportsHighRes = props.pollerType === PollerType.Pipe && props.batchWindow.toSeconds() === 0
     this.highResMetricsEnabled = props.pollerType === PollerType.Pipe && props.batchWindow.toSeconds() === 0 && (props.highResMetrics ?? false)
