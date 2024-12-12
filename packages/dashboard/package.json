@@ -16,11 +16,11 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
-    "aws-cdk-lib": "^2.163.0",
+    "aws-cdk-lib": "^2.173.0",
     "constructs": "^10.4.2"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch": "^3.675.0",
+    "@aws-sdk/client-cloudwatch": "^3.709.0",
     "@sqsbench/benchmark": "0.0.1",
     "@sqsbench/constructs": "0.0.1",
     "@sqsbench/helpers": "0.0.1"
