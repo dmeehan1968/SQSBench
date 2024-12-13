@@ -126,14 +126,14 @@ describe('Duration', () => {
         spy.mockReturnValue(1)
 
         const duration = Duration.milliseconds(1500)
-        expect(duration.toSeconds({ transform: spy })).toEqual(1)
+        expect(duration.toSeconds({ transform: spy as any })).toEqual(1)
         expect(spy).toHaveBeenCalledWith(1.5)
       })
 
       it('should apply transform and integral check', async () => {
         const spy = jest.fn()
         spy.mockReturnValue(1.2)
-        expect(() => Duration.milliseconds(1500).toSeconds({ transform: spy })).toThrow(DurationError)
+        expect(() => Duration.milliseconds(1500).toSeconds({ transform: spy as any })).toThrow(DurationError)
       })
 
     it('should work with floor', async () => {

@@ -16,9 +16,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "zod": "^3.23.8"
+    "zod": "^3.24.1"
   },
   "devDependencies": {
-    "aws-cdk-lib": "^2.160.0"
+    "aws-cdk-lib": "^2.173.0"
   }
 }

@@ -16,12 +16,12 @@ interface Props {
   tests: SqsTestProps[]
 
   /**
-   * The minimum rate of messages to send per second.  Must be greater than 0.
+   * The minimum rate of messages to send per minute.  Must be greater than 0.
    */
   minRate: number
 
   /**
-   * The maximum rate of messages to send per second.  Must be greater than 0.  Ideally should be to the power of 2,
+   * The maximum rate of messages to send per minute.  Must be greater than 0.  Ideally should be to the power of 2,
    * e.g. 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096 etc.
    *
    * NB: Any test that uses a maxConcurrency is likely to end up backlogged if the rate exceeds its capacity.

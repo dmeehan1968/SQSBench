@@ -83,7 +83,7 @@ export const handler = async (unknown: unknown) => {
       const queueUrl = queueUrlFromArn(queueArn)
 
       return chunkArray(messages, 10).map(chunk => limit(() => {
-        logger.info(`Deleting ${chunk.length} messages from ${queueUrl}`)
+        logger.debug(`Deleting ${chunk.length} messages from ${queueUrl}`)
 
         const command = new DeleteMessageBatchCommand({
           QueueUrl: queueUrl,

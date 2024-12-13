@@ -34,6 +34,10 @@ export class Queue extends EventEmitter<QueueEvents> {
 
     this.isPolling = true
     let shortBatchCount = 0
+    let cumulativeMessages = 0
+    let cumulativeTime = 0
+    let cumulativeRequests = 0
+    let canAbort = false
 
     while (this.isPolling) {
 
@@ -43,6 +47,7 @@ export class Queue extends EventEmitter<QueueEvents> {
 
       this.abortController = new AbortController()
 
+      const start = Date.now()
       const res = await this.sqs.send(new ReceiveMessageCommand({
         QueueUrl: this.queueUrl,
         MessageAttributeNames: ['All'],
@@ -50,25 +55,36 @@ export class Queue extends EventEmitter<QueueEvents> {
         ...params,
       }), { abortSignal: this.abortController.signal })
 
-      if ((res.Messages?.length ?? 0) < (params.MaxNumberOfMessages ?? 10)) {
+      const elapsedTime = Date.now() - start
+      const batchSize = params.MaxNumberOfMessages ?? 10
+      cumulativeRequests++
+      cumulativeTime += elapsedTime
+      const messageCount = res.Messages?.length ?? 0
+      cumulativeMessages += messageCount
+      const batchSpeed = (messageCount / batchSize / (elapsedTime / 1000))
+      const sessionSpeed = (cumulativeMessages / (cumulativeTime / 1000))
+      canAbort = canAbort || messageCount < batchSize && elapsedTime > ((params.WaitTimeSeconds ?? 0) * 1000)
+      this.logger.info(`[#${cumulativeRequests}] Received ${messageCount}/${params.MaxNumberOfMessages} messages in ${elapsedTime}ms, cumulative ${cumulativeTime}ms, ${cumulativeMessages} total, ${batchSpeed.toFixed(2)}/${sessionSpeed.toFixed(2)}${canAbort?'*':''} messages/s`)
+
+      if (messageCount < (params.MaxNumberOfMessages ?? 10)) {
         shortBatchCount++
       } else {
         shortBatchCount = 0
       }
 
-      if (!this.abortController.signal.aborted && res.Messages && res.Messages.length > 0) {
+      if (!this.abortController.signal.aborted && res.Messages && messageCount > 0) {
 
         await this.emit('messages', [...res.Messages])
 
       }
 
-      if (shortBatchCount > 5) {
-        this.logger.info('Stopping polling, too many short batches')
+      if (canAbort) {
+        this.logger.info(`Stopping polling, low volume detected`)
         this.stop()
       }
 
       if ((res.Messages?.length ?? 0) < (MinNumberOfMessages ?? 1)) {
-        this.logger.info('Stopping polling, insufficient messages')
+        this.logger.info('Stopping polling, empty receive encountered')
         this.stop()
       }
 
@@ -93,7 +109,7 @@ export class Queue extends EventEmitter<QueueEvents> {
 
   async deleteMessages(messages: Message[]) {
     await Promise.allSettled(chunkArray(messages, 10).map(async chunk => {
-      this.logger.info(`Deleting ${chunk.length} messages from ${this.queueUrl}`)
+      this.logger.debug(`Deleting ${chunk.length} messages from ${this.queueUrl}`)
       const res = await this.sqs.send(new DeleteMessageBatchCommand({
         QueueUrl: this.queueUrl,
         Entries: chunk.map(message => ({

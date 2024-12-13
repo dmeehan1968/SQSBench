@@ -23,4 +23,8 @@ export default {
     'node_modules/(?!(p-limit-esm|yocto-queue))'
   ],
   modulePathIgnorePatterns: ['cdk.out', 'dist', 'node_modules'],
+  extensionsToTreatAsEsm: ['.mts'],
+  setupFiles: [
+    '<rootDir>/jest.setup.mts',
+  ],
 }
