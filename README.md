@@ -301,11 +301,13 @@ The number of messages visible in the queue during the period (messages waiting 
 
 The age of the oldest message in the queue during the period.
 
-### Delivery Latency
+### Latency and Concurrency
 
 The time taken for the message to be delivered to the consumer.  This is the time between when the message was 
 scheduled to be visible in the queue and the time the consumer was invoked.  The queues own 'Average Age of Oldest
 Message' also includes the pre-visibility scheduling by the producer which distorts the true delivery latency.
+
+MaxConcurrency shows the concurrency of consumer invocations for the period.
 
 ### Messages Received
 
@@ -324,22 +326,6 @@ The average number of messages received by the consumer during the period.
 The weighted message rate for the period.  When highResMetrics is enabled, this allows you to see the way in which 
 messages are being distributed across the minute.
 
-## Observations
+### Consumer Concurrency
 
-Pipes tend to work out more expensive BUT have the advantage of being fully scalable.  By design they incur a high
-number of empty receives due to potentially redundant pollers, but this is a trade-off for the low latency delivery.
-The cost overhead tends to build over time to as it adjusts to consistent message rates, and may cope better than
-other solutions to fluctating/bursty message rates.  When traffic does go away, it takes a fair while for the 
-redundant pollers to age out.
-
-Event Source Mapping works similarly to Pipes but without the ultimate in scaling, and has the advantage that you can
-constrain the concurrency to reduce the overhead at lower message rates.  The downside is that hobbles the scaling
-ability and therefore bursts/increases in traffic can lead to backlogs, thus increasing latency.  An Event Source
-with minimum concurrency can work out to be the most cost effective choice for very low message rates, but there
-isn't much in it compared to a Lambda poller, although ESM retains the benefit of low latency delivery.
-
-The Lambda poller is somewhat simplistic, and trades latency for cost.  You need to be comfortable with >1 minute
-latency on message processing.  The cost is more predictable and scales well through lower message rates, but is
-ultimately capped by the ability to deal with both polling and consumer invocations once message rates exceed
-its capability.
-
+The number of concurrent consumers for each test during the period.

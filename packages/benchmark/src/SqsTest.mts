@@ -298,5 +298,17 @@ export class SqsTest extends Construct {
     return new SqsCostMetric(this.queue, { period, label })
   }
 
-}
+  metricConsumerConcurrency({ period = Duration.minutes(1), label = 'Concurrency', statistic = Statistic.Maximum }: { period?: Duration, label?: string, statistic?: Statistic } = {}): IMetric {
+    return new Metric({
+      label: [Fqn(this, { allowedSpecialCharacters: '-' }), label].join(' '),
+      namespace: this.consumer.metricsNamespace,
+      metricName: 'MaxConcurrency',
+      dimensionsMap: {
+        service: this.consumer.functionName,
+      },
+      statistic,
+      period,
+    })
+  }
 
+}
