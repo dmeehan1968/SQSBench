@@ -301,10 +301,10 @@ export class SqsTest extends Construct {
   metricConsumerConcurrency({ period = Duration.minutes(1), label = 'Concurrency', statistic = Statistic.Maximum }: { period?: Duration, label?: string, statistic?: Statistic } = {}): IMetric {
     return new Metric({
       label: [Fqn(this, { allowedSpecialCharacters: '-' }), label].join(' '),
-      namespace: this.consumer.metricsNamespace,
-      metricName: 'MaxConcurrency',
+      namespace: 'AWS/Lambda',
+      metricName: 'ConcurrentExecutions',
       dimensionsMap: {
-        service: this.consumer.functionName,
+        FunctionName: this.consumer.functionName,
       },
       statistic,
       period,
