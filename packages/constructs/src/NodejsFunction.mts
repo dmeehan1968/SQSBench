@@ -53,7 +53,7 @@ export class NodejsFunction extends NodejsFunctionBase {
 
     const isProd = Stage.of(scope)?.stageName === 'Prod'
     const sourceMap = isProd ? false : bundling?.sourceMap ?? true
-    const awsSdkV3Runtimes = [ undefined, Runtime.NODEJS_18_X, Runtime.NODEJS_20_X, Runtime.NODEJS_LATEST ]
+    const awsSdkV3Runtimes = [ undefined, Runtime.NODEJS_18_X, Runtime.NODEJS_20_X, Runtime.NODEJS_22_X, Runtime.NODEJS_LATEST ]
     const awsSdk = awsSdkV3Runtimes.includes(props.runtime)
       ? '@aws-sdk' // v3
       : 'aws-sdk'  // v2
@@ -73,7 +73,7 @@ export class NodejsFunction extends NodejsFunctionBase {
     const defaultProps: NodejsFunctionBaseProps = {
       functionName,
       logGroup,
-      runtime: Runtime.NODEJS_20_X,
+      runtime: Runtime.NODEJS_22_X,
       tracing: tracing?.enabled ?? false
         ? tracing?.passThrough ?? false ? Tracing.PASS_THROUGH : Tracing.ACTIVE
         : Tracing.DISABLED,
